@@ -1,5 +1,9 @@
 #include "sensor.h"
 
+#define PTR_L A0 // Phtotransistor Left PIN
+#define PTR_R A2 // Phtotransistor Right PIN
+#define LSR A3   // LaserPING PIN
+
 Sensor::Sensor()
 {
   pinMode(PTR_L, INPUT);

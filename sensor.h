@@ -2,10 +2,6 @@
 #define __SENSOR_H__
 #include <Arduino.h>
 
-#define PTR_L A0 // Phtotransistor Left PIN
-#define PTR_R A2 // Phtotransistor Right PIN
-#define LSR A3   // LaserPING PIN
-
 class Sensor
 {
 public:

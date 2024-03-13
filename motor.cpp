@@ -1,5 +1,22 @@
 #include "motor.h"
 
+// Define motor pins
+#define PWMA 12  // Motor A PWM
+#define DIRA1 34 // Motor A Direction +
+#define DIRA2 35 // Motor A Direction -
+
+#define PWMB 8   // Motor B PWM
+#define DIRB1 37 // Motor C Direction +
+#define DIRB2 36 // Motor B Direction -
+
+#define PWMC 6   // Motor C PWM
+#define DIRC1 43 // Motor C Direction +
+#define DIRC2 42 // Motor C Direction -
+
+#define PWMD 5   // Motor D PWM
+#define DIRD1 A4 // Motor D Direction +
+#define DIRD2 A5 // Motor D Direction -
+
 #define MOTORA_FORWARD(pwm)    \
   do                           \
   {                            \
@@ -25,8 +42,8 @@
 #define MOTORB_FORWARD(pwm)    \
   do                           \
   {                            \
-    digitalWrite(DIRB1, HIGH);  \
-    digitalWrite(DIRB2, LOW); \
+    digitalWrite(DIRB1, HIGH); \
+    digitalWrite(DIRB2, LOW);  \
     analogWrite(PWMB, pwm);    \
   } while (0)
 #define MOTORB_STOP(x)        \
@@ -39,8 +56,8 @@
 #define MOTORB_BACKOFF(pwm)    \
   do                           \
   {                            \
-    digitalWrite(DIRB1, LOW); \
-    digitalWrite(DIRB2, HIGH);  \
+    digitalWrite(DIRB1, LOW);  \
+    digitalWrite(DIRB2, HIGH); \
     analogWrite(PWMB, pwm);    \
   } while (0)
 
@@ -69,8 +86,8 @@
 #define MOTORD_FORWARD(pwm)    \
   do                           \
   {                            \
-    digitalWrite(DIRD1, HIGH);  \
-    digitalWrite(DIRD2, LOW); \
+    digitalWrite(DIRD1, HIGH); \
+    digitalWrite(DIRD2, LOW);  \
     analogWrite(PWMD, pwm);    \
   } while (0)
 #define MOTORD_STOP(x)        \
@@ -83,37 +100,15 @@
 #define MOTORD_BACKOFF(pwm)    \
   do                           \
   {                            \
-    digitalWrite(DIRD1, LOW); \
-    digitalWrite(DIRD2, HIGH);  \
+    digitalWrite(DIRD1, LOW);  \
+    digitalWrite(DIRD2, HIGH); \
     analogWrite(PWMD, pwm);    \
   } while (0)
 
-Encoder ECDA(ECDAA, ECDAB);
-Encoder ECDB(ECDBA, ECDBB);
-Encoder ECDC(ECDCA, ECDCB);
-Encoder ECDD(ECDDA, ECDDB);
-
 Motor::Motor()
 {
-  ;
+  delay(1);
 }
-
-
-void Motor::WHEEL_FORWARD()
-{
-
-}
-
-void Motor::WHEEL_BACKOFF()
-{
-
-}
-
-void Motor::WHEEL_STOP()
-{
-
-}
-
 
 //    ↓A-----B↓
 //     |  |  |
@@ -355,32 +350,4 @@ void Motor::STOP()
   MOTORB_STOP(0);
   MOTORC_STOP(0);
   MOTORD_STOP(0);
-}
-
-long Motor::getECDA()
-{
-  return ECDA.read();
-}
-
-long Motor::getECDB()
-{
-  return ECDB.read();
-}
-
-long Motor::getECDC()
-{
-  return ECDC.read();
-}
-
-long Motor::getECDD()
-{
-  return ECDD.read();
-}
-
-void Motor::reset()
-{
-  ECDA.write(0);
-  ECDB.write(0);
-  ECDC.write(0);
-  ECDD.write(0);
 }
