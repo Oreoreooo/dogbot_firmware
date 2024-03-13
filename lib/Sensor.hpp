@@ -22,7 +22,7 @@ public:
   int getSonarL();
   int getSonarR();
 
-  long getLength();
+  long getDepth();
 
   float getAngleX();
   float getAngleY();
@@ -31,14 +31,14 @@ public:
 private:
   MPU6050 _mpu;
 
-  long _length;
   int _light_l;
   int _light_r;
+  long _depth;
   int _sonar_l;
   int _sonar_r;
 };
 
-Sensor::Sensor(void) : _mpu(MPU6050(Wire)), _length(0), _light_l(0), _light_r(0), _sonar_l(0), _sonar_r(0)
+Sensor::Sensor(void) : _mpu(MPU6050(Wire)), _depth(0), _light_l(0), _light_r(0), _sonar_l(0), _sonar_r(0)
 {
   pinMode(PTR_L, INPUT);
   pinMode(PTR_R, INPUT);
@@ -84,7 +84,7 @@ void Sensor::update()
   {
     pinMode(LSRP, INPUT);
     lidar_duration = pulseIn(LSRP, HIGH);
-    _length = (_length * 0.5) + (lidar_duration * 171.5 * 0.5);
+    _depth = (_depth * 0.5) + (lidar_duration * 171.5 * 0.5);
     lidar_done = true;
   }
 }
@@ -109,9 +109,9 @@ int Sensor::getSonarR()
   return _sonar_r;
 }
 
-long Sensor::getLength()
+long Sensor::getDepth()
 {
-  return _length;
+  return _depth;
 }
 
 float Sensor::getAngleX()

@@ -17,6 +17,7 @@ public:
     void begin();
     void clear();
     void show(String data);
+    void show(const char *data);
 
 private:
     Adafruit_SSD1306 _sdd1306;
@@ -45,6 +46,14 @@ void Display_SSD1306::clear()
 }
 
 void Display_SSD1306::show(String data)
+{
+    _sdd1306.clearDisplay();
+    _sdd1306.setCursor(0, 0); // Start at top-left corner
+    _sdd1306.println(data);
+    _sdd1306.display();
+}
+
+void Display_SSD1306::show(const char *data)
 {
     _sdd1306.clearDisplay();
     _sdd1306.setCursor(0, 0); // Start at top-left corner

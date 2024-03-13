@@ -72,7 +72,7 @@ void Communication::serialSensorDataTX()
     SR.print(",LR=");
     SR.print(_sensor.getLightR());
     SR.print(",DT=");
-    SR.print(_sensor.getLength() * 0.0001);
+    SR.print(_sensor.getDepth() * 0.0001);
     SR.print(",AX=");
     SR.print(_sensor.getAngleX());
     SR.print(",AY=");
@@ -89,7 +89,7 @@ void Communication::wirelessSensorDataTX()
     WR.print(",LR=");
     WR.print(_sensor.getLightR());
     WR.print(",DT=");
-    WR.print(_sensor.getLength() * 0.0001);
+    WR.print(_sensor.getDepth() * 0.0001);
     WR.print(",AX=");
     WR.print(_sensor.getAngleX());
     WR.print(",AY=");

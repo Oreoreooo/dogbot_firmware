@@ -8,7 +8,8 @@ enum ControlState
     TURN,
     MEASURE,
     TRANSFER,
-    PARKING
+    PARKING,
+    STOP
 };
 
 #endif
