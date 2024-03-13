@@ -38,77 +38,47 @@ MPU6050 mpu(Wire);
 Sensor sensor = Sensor();
 Motor motor = Motor();
 
-enum PARKING_STATE {
-  IDLE,
-  START,
-  MOVE_25CM,
-  TURN_ANGLE,
-  MEASURE,
-  TRANSFER,
-  PARKING
-} PARKING_STATE;
+// enum PARKING_STATE {
+//   IDLE,
+//   START,
+//   MOVE_25CM,
+//   TURN_ANGLE,
+//   MEASURE,
+//   TRANSFER,
+//   PARKING
+// } PARKING_STATE;
 
-// void USB_Control() {
-//   String tempString;
-//   // USB data
-//   /*
-//    * Check if USB Serial data contain brackets
-//    */
 
-//   if (SERIAL.available()) {
-//     char inputChar = SERIAL.read();
-//     if (inputChar == '(') {  // Start loop when left bracket detected
-//       tempString = "";
-//       inputChar = SERIAL.read();
-//       while (inputChar != ')') {
-//         tempString = tempString + inputChar;
-//         inputChar = SERIAL.read();
-//         if (!SERIAL.available()) {
-//           break;
-//         }  // Break when bracket closed
-//       }
-//     }
-
-//     if (tempString != "") {
-//       display.clearDisplay();
-//       display.setCursor(0, 0);  // Start at top-left corner
-//       display.println("Serial_Data = ");
-//       display.println(tempString);
-//       display.display();
-//     }
-//   }
-// }
-
-char * BT_Control_Display(char command) {
+String BT_Control_Display(char command) {
   switch (command) {
     case 'A':
-      return "Forward"
+      return "Forward";
     case 'B':
-      return "Forward Right"
+      return "Forward Right";
     case 'C':
-      return "Rotate Right"
+      return "Rotate Right";
     case 'D':
-      return "Backward Right"
+      return "Backward Right";
     case 'E':
-      return "Backward"
+      return "Backward";
     case 'F':
-      return "Backward Left"
+      return "Backward Left";
     case 'G':
-      return "Rotate Left"
+      return "Rotate Left";
     case 'H':
-      return "Forward Left"
+      return "Forward Left";
     case 'Z':
-      return "Stop"
+      return "Stop";
     case 'z':
-      return "Stop"
+      return "Stop";
     case 'd':
-      return "Left"
+      return "Left";
     case 'b':
-      return "Right"
+      return "Right";
     case 'L':
-      return "1500"
+      return "1500";
     case 'M':
-      return "500"
+      return "500";
   }
 }
 
@@ -125,7 +95,6 @@ void BT_Control() {
     display.clearDisplay();
     display.setCursor(0, 0);  // Start at top-left corner
     display.println("BT_Data = ");
-
     display.println(BT_Control_Display(BT_Data));
     display.display();
   }
@@ -207,13 +176,13 @@ void printSensorData() {
   SERIAL.print(" AZ: ");
   SERIAL.print(mpu.getAngleZ());
   SERIAL.print(" EA: ");
-  SERIAL.print(motor.getTurnsA());
+  SERIAL.print(motor.getECDA());
   SERIAL.print(" EB: ");
-  SERIAL.print(motor.getTurnsB());
+  SERIAL.print(motor.getECDB());
   SERIAL.print(" EC: ");
-  SERIAL.print(motor.getTurnsC());
+  SERIAL.print(motor.getECDC());
   SERIAL.print(" ED: ");
-  SERIAL.print(motor.getTurnsD());
+  SERIAL.print(motor.getECDD());
   SERIAL.println("");
 }
 
@@ -243,6 +212,8 @@ void setup() {
   display.setCursor(0, 0);
   display.println("AI Robot");
   display.display();
+
+  SERIAL.println("Calibration OK!");
 }
 
 void loop() {
@@ -289,10 +260,12 @@ void loop() {
   // }
 
   // run the code in every 20ms
+
   if (millis() > (time + 15)) {
     time = millis();
     // USB_Control();
-    BT_Control();  // get BT serial data
-    // printSensorData();
+    // BT_Control();  // get BT serial data
+    motor.ADVANCE(Motor_PWM);
+    printSensorData();
   }
 }

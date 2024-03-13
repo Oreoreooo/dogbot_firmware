@@ -300,33 +300,33 @@ void Motor::ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_
 //     |  =  |
 //    =C-----D=
 void Motor::STOP() {
-  MOTORA_STOP(motor_pwm);
-  MOTORB_STOP(motor_pwm);
-  MOTORC_STOP(motor_pwm);
-  MOTORD_STOP(motor_pwm);
+  MOTORA_STOP(0);
+  MOTORB_STOP(0);
+  MOTORC_STOP(0);
+  MOTORD_STOP(0);
 }
 
 void Motor::update() {
-  this->turnsA = ECDA.read();
-  this->turnsB = ECDB.read();
-  this->turnsC = ECDC.read();
-  this->turnsD = ECDD.read();
+  this->TA = ECDA.read();
+  this->TB = ECDB.read();
+  this->TC = ECDC.read();
+  this->TD = ECDD.read();
 }
 
-long Motor::getTurnsA() {
-  return -this->turnsA;
+long Motor::getECDA() {
+  return -this->TA;
 }
 
-long Motor::getTurnsB() {
-  return this->turnsB;
+long Motor::getECDB() {
+  return this->TB;
 }
 
-long Motor::getTurnsC() {
-  return -this->turnsC;
+long Motor::getECDC() {
+  return -this->TC;
 }
 
-long Motor::getTurnsD() {
-  return this->turnsD;
+long Motor::getECDD() {
+  return this->TD;
 }
 
 void Motor::reset() {

@@ -56,24 +56,21 @@ public:
     void BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
     void ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
     void ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-
     void STOP();
 
-
-
-    long getTurnsA();
-    long getTurnsB();
-    long getTurnsC();
-    long getTurnsD();
+    long getECDA();
+    long getECDB();
+    long getECDC();
+    long getECDD();
 
     void update();
     void reset();
 
 private:
-    long turnsA = 0;
-    long turnsB = 0;
-    long turnsC = 0;
-    long turnsD = 0;
+    long TA = 0;
+    long TB = 0;
+    long TC = 0;
+    long TD = 0;
 };
 
 #endif
