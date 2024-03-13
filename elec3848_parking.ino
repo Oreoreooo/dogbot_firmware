@@ -79,6 +79,39 @@ enum PARKING_STATE {
 //   }
 // }
 
+char * BT_Control_Display(char command) {
+  switch (command) {
+    case 'A':
+      return "Forward"
+    case 'B':
+      return "Forward Right"
+    case 'C':
+      return "Rotate Right"
+    case 'D':
+      return "Backward Right"
+    case 'E':
+      return "Backward"
+    case 'F':
+      return "Backward Left"
+    case 'G':
+      return "Rotate Left"
+    case 'H':
+      return "Forward Left"
+    case 'Z':
+      return "Stop"
+    case 'z':
+      return "Stop"
+    case 'd':
+      return "Left"
+    case 'b':
+      return "Right"
+    case 'L':
+      return "1500"
+    case 'M':
+      return "500"
+  }
+}
+
 void BT_Control() {
   char BT_Data = 0;
   /*
@@ -92,7 +125,8 @@ void BT_Control() {
     display.clearDisplay();
     display.setCursor(0, 0);  // Start at top-left corner
     display.println("BT_Data = ");
-    display.println(BT_Data);
+
+    display.println(BT_Control_Display(BT_Data));
     display.display();
   }
 
