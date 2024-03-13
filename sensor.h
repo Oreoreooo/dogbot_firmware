@@ -11,31 +11,31 @@ public:
 
   int getLightL()
   {
-    return this->lightL;
+    return this->_light_l;
   }
   int getLightR()
   {
-    return this->lightR;
+    return this->_light_r;
   }
   int getSonarL()
   {
-    return this->sonarL;
+    return this->_sonar_l;
   }
   int getSonarR()
   {
-    return this->sonarR;
+    return this->_sonar_r;
   }
   long getDistance()
   {
-    return this->distance;
+    return this->_length;
   }
 
 private:
-  long distance = 0;
-  int lightL = 0;
-  int lightR = 0;
-  int sonarL = 0;
-  int sonarR = 0;
+  long _length = 0;
+  int _light_l = 0;
+  int _light_r = 0;
+  int _sonar_l = 0;
+  int _sonar_r = 0;
 };
 
 #endif

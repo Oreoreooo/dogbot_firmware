@@ -36,13 +36,12 @@ int window_size = 0;
 
 // Serial Communication
 #define SERIAL Serial
-#define BTSERIAL Serial3 // BT Module on Serial 3 (D14 & D15)
-// #define WIFISERIAL Serial3 // WIFI Module on Serial 3 (D14 & D15)
+#define BTSERIAL Serial3 // Wireless Module on Serial 3 (D14 & D15)
 
 // PWM Definition
 #define MAX_PWM 2000
 #define MIN_PWM 300
-int Motor_PWM = 1900;
+int motor_pwm = 1900;
 
 MPU6050 mpu(Wire);
 Sensor sensor;
@@ -50,6 +49,7 @@ Motor motor;
 
 unsigned long time;
 unsigned long sample_time = 0;
+unsigned long publish_time = 0;
 
 enum PARKING_STATE
 {
@@ -99,39 +99,33 @@ enum PARKING_STATE
 
 void SR_Control()
 {
-  char SR_Data = 0;
-  /*
-    Receive data from Serial and translate it to motor movements
-  */
+  static char data = 0;
   if (SERIAL.available())
   {
-    SR_Data = SERIAL.read();
+    data = SERIAL.read();
     SERIAL.flush();
     display.clearDisplay();
     display.setCursor(0, 0); // Start at top-left corner
     display.println("SR_Data = ");
-    display.println(SR_Data);
+    display.println(data);
     display.display();
-    wheelControl(SR_Data);
+    wheelControl(data);
   }
 }
 
-void BT_Control()
+void WR_Control()
 {
-  char BT_Data = 0;
-  /*
-    Receive data from app and translate it to motor movements
-  */
-  if (BTSERIAL.available())
+  static char data = 0;
+  if (WRSerial.available())
   {
-    BT_Data = BTSERIAL.read();
-    BTSERIAL.flush();
+    data = WRSerial.read();
+    WRSerial.flush();
     display.clearDisplay();
     display.setCursor(0, 0); // Start at top-left corner
-    display.println("BT_Data = ");
-    display.println(BT_Data);
+    display.println("WR_Data = ");
+    display.println(data);
     display.display();
-    wheelControl(BT_Data);
+    wheelControl(data);
   }
 }
 
@@ -140,28 +134,28 @@ void wheelControl(char data)
   switch (data)
   {
   case 'A':
-    motor.ADVANCE(Motor_PWM);
+    motor.ADVANCE(motor_pwm);
     break;
   case 'B':
-    motor.ADVANCE_RIGHT(Motor_PWM);
+    motor.ADVANCE_RIGHT(motor_pwm);
     break;
   case 'C':
-    motor.ROTATE_CW(Motor_PWM);
+    motor.ROTATE_CW(motor_pwm);
     break;
   case 'D':
-    motor.BACK_RIGHT(Motor_PWM);
+    motor.BACK_RIGHT(motor_pwm);
     break;
   case 'E':
-    motor.BACK(Motor_PWM);
+    motor.BACK(motor_pwm);
     break;
   case 'F':
-    motor.BACK_LEFT(Motor_PWM);
+    motor.BACK_LEFT(motor_pwm);
     break;
   case 'G':
-    motor.ROTATE_CCW(Motor_PWM);
+    motor.ROTATE_CCW(motor_pwm);
     break;
   case 'H':
-    motor.ADVANCE_LEFT(Motor_PWM);
+    motor.ADVANCE_LEFT(motor_pwm);
     break;
   case 'Z':
     motor.STOP();
@@ -170,16 +164,16 @@ void wheelControl(char data)
     motor.STOP();
     break;
   case 'd':
-    motor.LEFT(Motor_PWM);
+    motor.LEFT(motor_pwm);
     break;
   case 'b':
-    motor.RIGHT(Motor_PWM);
+    motor.RIGHT(motor_pwm);
     break;
   case 'L':
-    Motor_PWM = 1500;
+    motor_pwm = 1500;
     break;
   case 'M':
-    Motor_PWM = 500;
+    motor_pwm = 500;
     break;
   default:
     break;
@@ -244,6 +238,8 @@ void setup()
 
 void loop()
 {
+  sensor.update();
+
   switch (PARKING_STATE)
   {
   case IDLE:
@@ -294,8 +290,12 @@ void loop()
     ECD_B = ECDB.read();
     ECD_C = ECDC.read();
     ECD_D = ECDD.read();
-    sensor.update();
     mpu.update();
+  }
+
+  if (millis() > (publish_time + 1000))
+  {
+    publish_time = millis();
     sendSensor();
   }
 
@@ -303,6 +303,6 @@ void loop()
   {
     time = millis();
     SR_Control();
-    BT_Control();
+    WR_Control();
   }
 }
