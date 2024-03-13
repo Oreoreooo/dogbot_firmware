@@ -2,7 +2,6 @@
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <MPU6050_light.h>
-// #include <SoftwareSerial.h>
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
 #include <SPI.h>
@@ -23,6 +22,10 @@ Encoder ECDA(ECDAA, ECDAB);
 Encoder ECDB(ECDBA, ECDBB);
 Encoder ECDC(ECDCA, ECDCB);
 Encoder ECDD(ECDDA, ECDDB);
+int32_t ECD_A = 0;
+int32_t ECD_B = 0;
+int32_t ECD_C = 0;
+int32_t ECD_D = 0;
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -33,7 +36,8 @@ int window_size = 0;
 
 // Serial Communication
 #define SERIAL Serial
-// #define BTSERIAL Serial3 // BT Module on Serial 3 (D14 & D15)
+#define BTSERIAL Serial3 // BT Module on Serial 3 (D14 & D15)
+// #define WIFISERIAL Serial3 // WIFI Module on Serial 3 (D14 & D15)
 
 // PWM Definition
 #define MAX_PWM 2000
@@ -45,6 +49,7 @@ Sensor sensor;
 Motor motor;
 
 unsigned long time;
+unsigned long sample_time = 0;
 
 enum PARKING_STATE
 {
@@ -111,25 +116,24 @@ void SR_Control()
   }
 }
 
-// void BT_Control()
-// {
-//   char BT_Data = 0;
-//   /*
-//     Receive data from app and translate it to motor movements
-//   */
-//   if (BTSERIAL.available())
-//   {
-//     BT_Data = BTSERIAL.read();
-//     BTSERIAL.flush();
-//     BT_alive_cnt = 100;
-//     display.clearDisplay();
-//     display.setCursor(0, 0); // Start at top-left corner
-//     display.println("BT_Data = ");
-//     display.println(BT_Data);
-//     display.display();
-//     wheelControl(BT_Data);
-//   }
-// }
+void BT_Control()
+{
+  char BT_Data = 0;
+  /*
+    Receive data from app and translate it to motor movements
+  */
+  if (BTSERIAL.available())
+  {
+    BT_Data = BTSERIAL.read();
+    BTSERIAL.flush();
+    display.clearDisplay();
+    display.setCursor(0, 0); // Start at top-left corner
+    display.println("BT_Data = ");
+    display.println(BT_Data);
+    display.display();
+    wheelControl(BT_Data);
+  }
+}
 
 void wheelControl(char data)
 {
@@ -197,13 +201,13 @@ void sendSensor()
   SERIAL.print(" AZ: ");
   SERIAL.print(mpu.getAngleZ());
   SERIAL.print(" EA: ");
-  SERIAL.print(ECDA.read());
+  SERIAL.print(ECD_A);
   SERIAL.print(" EB: ");
-  SERIAL.print(ECDB.read());
+  SERIAL.print(ECD_B);
   SERIAL.print(" EC: ");
-  SERIAL.print(ECDC.read());
+  SERIAL.print(ECD_C);
   SERIAL.print(" ED: ");
-  SERIAL.print(ECDD.read());
+  SERIAL.print(ECD_D);
   SERIAL.println("]");
 }
 
@@ -283,16 +287,22 @@ void loop()
     break;
   }
 
-  // run the code in every 20ms
+  if (millis() > (sample_time + 50))
+  {
+    sample_time = millis();
+    ECD_A = ECDA.read();
+    ECD_B = ECDB.read();
+    ECD_C = ECDC.read();
+    ECD_D = ECDD.read();
+    sensor.update();
+    mpu.update();
+    sendSensor();
+  }
 
   if (millis() > (time + 15))
   {
-    sensor.update();
-    mpu.update();
     time = millis();
-
     SR_Control();
-    // BT_Control(); // get BT serial data
-    sendSensor();
+    BT_Control();
   }
 }
