@@ -27,7 +27,8 @@
 // PWM Definition
 #define MAX_PWM 2000
 #define MIN_PWM 300
-int Motor_PWM = 1900;
+int Motor_PWM = 1150;
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int window_size = 0;
 int BT_alive_cnt = 0;
@@ -47,42 +48,39 @@ enum PARKING_STATE {
   PARKING
 } PARKING_STATE;
 
-void USB_Control() {
-  String tempString;
-  // USB data
-  /*
-   * Check if USB Serial data contain brackets
-   */
+// void USB_Control() {
+//   String tempString;
+//   // USB data
+//   /*
+//    * Check if USB Serial data contain brackets
+//    */
 
-  if (SERIAL.available()) {
-    char inputChar = SERIAL.read();
-    if (inputChar == '(') {  // Start loop when left bracket detected
-      tempString = "";
-      inputChar = SERIAL.read();
-      while (inputChar != ')') {
-        tempString = tempString + inputChar;
-        inputChar = SERIAL.read();
-        if (!SERIAL.available()) {
-          break;
-        }  // Break when bracket closed
-      }
-    }
+//   if (SERIAL.available()) {
+//     char inputChar = SERIAL.read();
+//     if (inputChar == '(') {  // Start loop when left bracket detected
+//       tempString = "";
+//       inputChar = SERIAL.read();
+//       while (inputChar != ')') {
+//         tempString = tempString + inputChar;
+//         inputChar = SERIAL.read();
+//         if (!SERIAL.available()) {
+//           break;
+//         }  // Break when bracket closed
+//       }
+//     }
 
-    moveControl(tempString[0]);
-
-    if (tempString != "") {
-      display.clearDisplay();
-      display.setCursor(0, 0);  // Start at top-left corner
-      display.println("Serial_Data = ");
-      display.println(tempString);
-      display.display();
-    }
-  }
-}
+//     if (tempString != "") {
+//       display.clearDisplay();
+//       display.setCursor(0, 0);  // Start at top-left corner
+//       display.println("Serial_Data = ");
+//       display.println(tempString);
+//       display.display();
+//     }
+//   }
+// }
 
 void BT_Control() {
   char BT_Data = 0;
-
   /*
     Receive data from app and translate it to motor movements
   */
@@ -98,16 +96,11 @@ void BT_Control() {
     display.display();
   }
 
+  BT_alive_cnt = BT_alive_cnt - 1;
   if (BT_alive_cnt <= 0) {
     motor.STOP();
-  } else {
-    BT_alive_cnt = BT_alive_cnt - 1;
-    moveControl(BT_Data);
   }
-}
-
-void moveControl(char command) {
-  switch (command) {
+  switch (BT_Data) {
     case 'A':
       motor.ADVANCE(Motor_PWM);
       M_LOG("Run!\r\n");
@@ -160,6 +153,9 @@ void moveControl(char command) {
     case 'M':
       Motor_PWM = 500;
       break;
+    default:
+      motor.STOP();
+      break;
   }
 }
 
@@ -184,7 +180,6 @@ void printSensorData() {
   SERIAL.print(motor.getTurnsC());
   SERIAL.print(" ED: ");
   SERIAL.print(motor.getTurnsD());
-
   SERIAL.println("");
 }
 
@@ -217,6 +212,9 @@ void setup() {
 }
 
 void loop() {
+  sensor.update();
+  mpu.update();
+  motor.update();
   // switch (PARKING_STATE) {
   //   case IDLE:
   //     break;
@@ -258,13 +256,9 @@ void loop() {
 
   // run the code in every 20ms
   if (millis() > (time + 15)) {
-    sensor.update();
-    mpu.update();
-    motor.update();
-
     time = millis();
-    USB_Control();
-    BT_Control();  // get USB and BT serial data
-    printSensorData();
+    // USB_Control();
+    BT_Control();  // get BT serial data
+    // printSensorData();
   }
 }
