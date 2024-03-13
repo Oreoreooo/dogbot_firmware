@@ -1,6 +1,6 @@
 {
-    "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
-        "state_machine.h": "c"
+        "sensor.h": "c",
+        "encoder.h": "c"
     }
 }

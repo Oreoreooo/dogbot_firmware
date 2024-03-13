@@ -27,11 +27,14 @@
 // PWM Definition
 #define MAX_PWM 2000
 #define MIN_PWM 300
-int Motor_PWM = 1150;
+int Motor_PWM = 1900;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int window_size = 0;
+
 int BT_alive_cnt = 0;
+int SR_alive_cnt = 0;
+
 unsigned long time;
 
 MPU6050 mpu(Wire);
@@ -48,37 +51,56 @@ Motor motor = Motor();
 //   PARKING
 // } PARKING_STATE;
 
+// String Control_Display(char command)
+// {
+//   switch (command)
+//   {
+//   case 'A':
+//     return "Forward";
+//   case 'B':
+//     return "Forward Right";
+//   case 'C':
+//     return "Rotate Right";
+//   case 'D':
+//     return "Backward Right";
+//   case 'E':
+//     return "Backward";
+//   case 'F':
+//     return "Backward Left";
+//   case 'G':
+//     return "Rotate Left";
+//   case 'H':
+//     return "Forward Left";
+//   case 'Z':
+//     return "Stop";
+//   case 'z':
+//     return "Stop";
+//   case 'd':
+//     return "Left";
+//   case 'b':
+//     return "Right";
+//   case 'L':
+//     return "1500";
+//   case 'M':
+//     return "500";
+//   }
+// }
 
-String BT_Control_Display(char command) {
-  switch (command) {
-    case 'A':
-      return "Forward";
-    case 'B':
-      return "Forward Right";
-    case 'C':
-      return "Rotate Right";
-    case 'D':
-      return "Backward Right";
-    case 'E':
-      return "Backward";
-    case 'F':
-      return "Backward Left";
-    case 'G':
-      return "Rotate Left";
-    case 'H':
-      return "Forward Left";
-    case 'Z':
-      return "Stop";
-    case 'z':
-      return "Stop";
-    case 'd':
-      return "Left";
-    case 'b':
-      return "Right";
-    case 'L':
-      return "1500";
-    case 'M':
-      return "500";
+void SR_Control() {
+  char SR_Data = 0;
+  /*
+    Receive data from app and translate it to motor movements
+  */
+  if (SERIAL.available()) {
+    SR_Data = SERIAL.read();
+    SERIAL.flush();
+    BT_alive_cnt = 100;
+    display.clearDisplay();
+    display.setCursor(0, 0);  // Start at top-left corner
+    display.println("SR_Data = ");
+    display.println(SR_Data);
+    display.display();
+    wheelControl(SR_Data);
   }
 }
 
@@ -95,60 +117,58 @@ void BT_Control() {
     display.clearDisplay();
     display.setCursor(0, 0);  // Start at top-left corner
     display.println("BT_Data = ");
-    display.println(BT_Control_Display(BT_Data));
+    display.println(BT_Data);
     display.display();
+    wheelControl(BT_Data);
   }
+}
 
-  BT_alive_cnt = BT_alive_cnt - 1;
-  if (BT_alive_cnt <= 0) {
-    motor.STOP();
-  }
-  switch (BT_Data) {
+void wheelControl(char data) {
+  switch (data) {
+    case '1':
+      motor.WHEEL_FORWARD();
+      break;
+    case '2':
+      motor.WHEEL_BACKOFF();
+      break;
+    case '3':
+      motor.WHEEL_STOP();
+      break;
     case 'A':
       motor.ADVANCE(Motor_PWM);
-      M_LOG("Run!\r\n");
       break;
     case 'B':
       motor.ADVANCE_RIGHT(Motor_PWM);
-      M_LOG("Right up!\r\n");
       break;
     case 'C':
       motor.ROTATE_CW(Motor_PWM);
       break;
     case 'D':
       motor.BACK_RIGHT(Motor_PWM);
-      M_LOG("Right down!\r\n");
       break;
     case 'E':
       motor.BACK(Motor_PWM);
-      M_LOG("Back!\r\n");
       break;
     case 'F':
       motor.BACK_LEFT(Motor_PWM);
-      M_LOG("Left down!\r\n");
       break;
     case 'G':
       motor.ROTATE_CCW(Motor_PWM);
       break;
     case 'H':
       motor.ADVANCE_LEFT(Motor_PWM);
-      M_LOG("Left up!\r\n");
       break;
     case 'Z':
       motor.STOP();
-      M_LOG("Stop!\r\n");
       break;
     case 'z':
       motor.STOP();
-      M_LOG("Stop!\r\n");
       break;
     case 'd':
       motor.LEFT(Motor_PWM);
-      M_LOG("Left!\r\n");
       break;
     case 'b':
       motor.RIGHT(Motor_PWM);
-      M_LOG("Right!\r\n");
       break;
     case 'L':
       Motor_PWM = 1500;
@@ -162,7 +182,7 @@ void BT_Control() {
   }
 }
 
-void printSensorData() {
+void printSensor() {
   SERIAL.print("LL: ");
   SERIAL.print(sensor.getLightL());
   SERIAL.print(" LR: ");
@@ -188,7 +208,7 @@ void printSensorData() {
 
 void setup() {
   SERIAL.begin(115200);  // USB serial setup
-  SERIAL.println("Starting...");
+  SERIAL.println("Calibrating...");
   motor.STOP();          // Stop the robot
   BTSERIAL.begin(9600);  // BT serial setup
 
@@ -217,9 +237,6 @@ void setup() {
 }
 
 void loop() {
-  sensor.update();
-  mpu.update();
-  motor.update();
   // switch (PARKING_STATE) {
   //   case IDLE:
   //     break;
@@ -262,10 +279,17 @@ void loop() {
   // run the code in every 20ms
 
   if (millis() > (time + 15)) {
+    sensor.update();
+    mpu.update();
     time = millis();
-    // USB_Control();
+
+    // if (SR_alive_cnt-- <= 0 && BT_alive_cnt-- <= 0)
+    // {
+    //   motor.STOP();
+    // }
+
+    SR_Control();
     // BT_Control();  // get BT serial data
-    motor.ADVANCE(Motor_PWM);
-    printSensorData();
+    printSensor();
   }
 }

@@ -35,6 +35,10 @@ class Motor
 public:
     Motor(void);
 
+    void WHEEL_FORWARD();
+    void WHEEL_BACKOFF();
+    void WHEEL_STOP();
+
     void BACK(uint8_t motor_pwm);
     void ADVANCE(uint8_t motor_pwm);
     void ADVANCE_LEFT(uint8_t motor_pwm);
@@ -63,14 +67,9 @@ public:
     long getECDC();
     long getECDD();
 
-    void update();
     void reset();
 
 private:
-    long TA = 0;
-    long TB = 0;
-    long TC = 0;
-    long TD = 0;
 };
 
 #endif
