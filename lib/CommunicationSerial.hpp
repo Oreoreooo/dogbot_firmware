@@ -67,36 +67,36 @@ char Communication::wirelessControlRX()
 
 void Communication::serialSensorDataTX()
 {
-    SR.print("[LL: ");
+    SR.print("LL=");
     SR.print(_sensor.getLightL());
-    SR.print(" LR: ");
+    SR.print(",LR=");
     SR.print(_sensor.getLightR());
-    SR.print(" DT: ");
+    SR.print(",DT=");
     SR.print(_sensor.getLength() * 0.0001);
-    SR.print(" AX: ");
+    SR.print(",AX=");
     SR.print(_sensor.getAngleX());
-    SR.print(" AY: ");
+    SR.print(",AY=");
     SR.print(_sensor.getAngleY());
-    SR.print(" AZ: ");
+    SR.print(",AZ=");
     SR.print(_sensor.getAngleZ());
-    SR.println("]");
+    SR.println("");
 }
 
 void Communication::wirelessSensorDataTX()
 {
-    WR.print("[LL: ");
+    WR.print("LL=");
     WR.print(_sensor.getLightL());
-    WR.print(" LR: ");
+    WR.print(",LR=");
     WR.print(_sensor.getLightR());
-    WR.print(" DT: ");
+    WR.print(",DT=");
     WR.print(_sensor.getLength() * 0.0001);
-    WR.print(" AX: ");
+    WR.print(",AX=");
     WR.print(_sensor.getAngleX());
-    WR.print(" AY: ");
+    WR.print(",AY=");
     WR.print(_sensor.getAngleY());
-    WR.print(" AZ: ");
+    WR.print(",AZ=");
     WR.print(_sensor.getAngleZ());
-    WR.println("]");
+    WR.println("");
 }
 
 void Communication::_wheelControl(char data)
