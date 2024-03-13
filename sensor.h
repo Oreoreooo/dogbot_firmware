@@ -1,27 +1,45 @@
 #ifndef __SENSOR_H__
 #define __SENSOR_H__
 #include <Arduino.h>
-#include <Wire.h>
-#include <MPU6050_light.h>
+
+#define PTR_L A0 // Phtotransistor Left PIN
+#define PTR_R A2 // Phtotransistor Right PIN
+#define LSR A3   // LaserPING PIN
 
 class Sensor
 {
 public:
-    Sensor(void);
+  Sensor(void);
 
-    void update();
+  void update();
 
-    int getLight() { return this->light; }  // 0: Left, 1: Right
-    int getSonar() { return this->sonar; }  // 0: Left, 1: Right
-    int getAngle() { return this->angle; }  // 0: X, 1: Y, 2: Z
-    float getDistance() { return this->distance; }  // cm
+  int getLightL()
+  {
+    return this->lightL;
+  }
+  int getLightR()
+  {
+    return this->lightR;
+  }
+  int getSonarL()
+  {
+    return this->sonarL;
+  }
+  int getSonarR()
+  {
+    return this->sonarR;
+  }
+  long getDistance()
+  {
+    return this->distance;
+  }
 
 private:
-    float distance = 0;
-    int light[2] = {0, 0};
-    int sonar[2] = {0, 0};
-    float angle[3] = {0, 0, 0};
-    float acc[3] = {0, 0, 0};
+  long distance = 0;
+  int lightL = 0;
+  int lightR = 0;
+  int sonarL = 0;
+  int sonarR = 0;
 };
 
 #endif
