@@ -15,10 +15,10 @@
 #define ECDDA 2  // Motor D Encoder PIN A
 #define ECDDB A1 // Motor D Encoder PIN B
 
-class MotorEncoder
+class MotorFeedback
 {
 public:
-    MotorEncoder(void);
+    MotorFeedback(void);
 
     long *read();
 
@@ -30,9 +30,9 @@ private:
     long _ECD[4];
 };
 
-MotorEncoder::MotorEncoder(void) : ECDA(Encoder(ECDAA, ECDAB)), ECDB(Encoder(ECDBA, ECDBB)), ECDC(Encoder(ECDCA, ECDCB)), ECDD(Encoder(ECDDA, ECDDB)), _ECD{0, 0, 0, 0} {}
+MotorFeedback::MotorEncoder(void) : ECDA(Encoder(ECDAA, ECDAB)), ECDB(Encoder(ECDBA, ECDBB)), ECDC(Encoder(ECDCA, ECDCB)), ECDD(Encoder(ECDDA, ECDDB)), _ECD{0, 0, 0, 0} {}
 
-long *MotorEncoder::read()
+long *MotorFeedback::read()
 {
     _ECD[0] = ECDA.read();
     _ECD[1] = ECDB.read();
