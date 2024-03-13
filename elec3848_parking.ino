@@ -5,10 +5,6 @@
 #include "lib/State.h"
 #include <Arduino.h>
 
-// PWM Definition
-#define MAX_PWM 2000
-#define MIN_PWM 300
-
 ControlState CONTROL_STATE = IDLE;
 Display_SSD1306 display;
 Sensor sensor;
@@ -54,15 +50,15 @@ void loop()
     if (sr_data == 'S' || wr_data == 'S')
     {
       delay(2000);
-      CONTROL_STATE = MOVE_25CM;
+      CONTROL_STATE = MOVE;
     }
     break;
-  case MOVE_25CM: // Move to a location of 25cm from the wall, and wait for 2 sec.
+  case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
 
     delay(2000);
-    CONTROL_STATE = TURN_ANGLE;
+    CONTROL_STATE = TURN;
     break;
-  case TURN_ANGLE: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
+  case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
 
     delay(2000);
     delay(2000);

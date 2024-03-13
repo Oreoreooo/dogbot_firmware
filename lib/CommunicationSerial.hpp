@@ -6,7 +6,7 @@
 #include "Sensor.hpp"
 #include <Arduino.h>
 
-#define SR Serial
+#define SR Serial  // Serial on USB
 #define WR Serial3 // Wireless Module on Serial 3 (D14 & D15)
 
 class Communication
@@ -128,10 +128,10 @@ void Communication::_wheelControl(char data)
         _motor.ADVANCE_LEFT(_motor_pwm);
         break;
     case 'L':
-        _motor_pwm = _motor_pwm + 170;
+        _motor_pwm = constrain(_motor_pwm + 170, MAX_PWM, MIN_PWM);
         break;
     case 'M':
-        _motor_pwm = _motor_pwm - 170;
+        _motor_pwm = constrain(_motor_pwm - 170, MAX_PWM, MIN_PWM);
         break;
     case 'Z':
         _motor.STOP();

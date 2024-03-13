@@ -20,6 +20,10 @@
 #define DIRD1 A4 // Motor D Direction +
 #define DIRD2 A5 // Motor D Direction -
 
+// PWM Definition
+#define MAX_PWM 2000
+#define MIN_PWM 300
+
 class Motor
 {
 public:

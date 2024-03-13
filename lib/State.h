@@ -4,9 +4,8 @@
 enum ControlState
 {
     IDLE,
-    START,
-    MOVE_25CM,
-    TURN_ANGLE,
+    MOVE,
+    TURN,
     MEASURE,
     TRANSFER,
     PARKING
