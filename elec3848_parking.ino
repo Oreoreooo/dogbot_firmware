@@ -107,9 +107,9 @@ char * BT_Control_Display(char command) {
     case 'b':
       return "Right"
     case 'L':
-      return 1500
+      return "1500"
     case 'M':
-      return 500
+      return "500"
   }
 }
 
@@ -128,7 +128,7 @@ void BT_Control() {
     display.setCursor(0, 0);  // Start at top-left corner
     display.println("BT_Data = ");
 
-    display.println(BT_Data);
+    display.println(BT_Control_Display(BT_Data));
     display.display();
   }
 
