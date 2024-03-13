@@ -5,7 +5,7 @@
 #include "lib/State.h"
 #include <Arduino.h>
 
-ControlState CONTROL_STATE = IDLE;
+ControlState state = IDLE;
 Display_SSD1306 display;
 Sensor sensor;
 Motor motor;
@@ -44,26 +44,26 @@ void loop()
     wr_data = comm.wirelessControlRX();
   }
 
-  switch (CONTROL_STATE)
+  switch (state)
   {
   case IDLE: // After start, wait for 2 sec
     if (sr_data == 'S' || wr_data == 'S')
     {
       delay(2000);
-      CONTROL_STATE = MOVE;
+      state = MOVE;
     }
     break;
 
   case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
     delay(2000);
-    CONTROL_STATE = TURN;
+    state = TURN;
     break;
 
   case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
     delay(2000);
     delay(2000);
     delay(2000);
-    CONTROL_STATE = MEASURE;
+    state = MEASURE;
     break;
 
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
@@ -71,17 +71,17 @@ void loop()
     sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ());
     display.show(data);
     delay(2000);
-    CONTROL_STATE = TRANSFER;
+    state = TRANSFER;
     break;
 
   case TRANSFER: // Transfer to the parking location.
     delay(2000);
-    CONTROL_STATE = PARKING;
+    state = PARKING;
     break;
 
   case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
     delay(2000);
-    CONTROL_STATE = STOP;
+    state = STOP;
     break;
 
   default:
