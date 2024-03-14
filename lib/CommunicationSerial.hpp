@@ -17,12 +17,15 @@ public:
 
     char serialControlRX();
     char wirelessControlRX();
+
+    void displaySensorData();
+
     void serialSensorDataTX();
-    void wirelessSensorDataTX();
+    // void wirelessSensorDataTX();
 
 private:
     void _wheelControl(char data);
-    String _controlDisplay(char data);
+    String _commandToString(char data);
 
     Display_SSD1306 *_display;
     Motor *_motor;
@@ -31,7 +34,7 @@ private:
     int _motor_pwm;
 };
 
-CommunicationSerial::CommunicationSerial(Display_SSD1306 *display, Motor *motor, Sensor *sensor) : _display(display), _motor(motor), _sensor(sensor), _motor_pwm(1150) {}
+CommunicationSerial::CommunicationSerial(Display_SSD1306 *display, Motor *motor, Sensor *sensor) : _display(display), _motor(motor), _sensor(sensor), _motor_pwm(255) {}
 
 void CommunicationSerial::begin()
 {
@@ -46,7 +49,7 @@ char CommunicationSerial::serialControlRX()
     {
         data = SR.read();
         SR.flush();
-        _display->show(_controlDisplay(data));
+        // _display->show(_commandToString(data));
         _wheelControl(data);
     }
     return data;
@@ -59,10 +62,17 @@ char CommunicationSerial::wirelessControlRX()
     {
         data = WR.read();
         WR.flush();
-        _display->show(_controlDisplay(data));
+        // _display->show(_commandToString(data));
         _wheelControl(data);
     }
     return data;
+}
+
+void CommunicationSerial::displaySensorData()
+{
+    static char data[50];
+    sprintf(data, "L: %-4d  R: %-4d\nD: %-6.1f\nX: %-5.2f  Z: %-5.2f", _sensor->getLightL(), _sensor->getLightR(), _sensor->getDistance(), _sensor->getAngleX(), _sensor->getAngleZ());
+    _display->show(data);
 }
 
 void CommunicationSerial::serialSensorDataTX()
@@ -72,32 +82,28 @@ void CommunicationSerial::serialSensorDataTX()
     SR.print(",LR=");
     SR.print(_sensor->getLightR());
     SR.print(",DT=");
-    SR.print(_sensor->getDepth() * 0.0001);
+    SR.print(_sensor->getDistance());
     SR.print(",AX=");
     SR.print(_sensor->getAngleX());
-    SR.print(",AY=");
-    SR.print(_sensor->getAngleY());
     SR.print(",AZ=");
     SR.print(_sensor->getAngleZ());
     SR.println("");
 }
 
-void CommunicationSerial::wirelessSensorDataTX()
-{
-    WR.print("LL=");
-    WR.print(_sensor->getLightL());
-    WR.print(",LR=");
-    WR.print(_sensor->getLightR());
-    WR.print(",DT=");
-    WR.print(_sensor->getDepth() * 0.0001);
-    WR.print(",AX=");
-    WR.print(_sensor->getAngleX());
-    WR.print(",AY=");
-    WR.print(_sensor->getAngleY());
-    WR.print(",AZ=");
-    WR.print(_sensor->getAngleZ());
-    WR.println("");
-}
+// void CommunicationSerial::wirelessSensorDataTX()
+// {
+//     WR.print("LL=");
+//     WR.print(_sensor->getLightL());
+//     WR.print(",LR=");
+//     WR.print(_sensor->getLightR());
+//     WR.print(",DT=");
+//     WR.print(_sensor->getDistance());
+//     WR.print(",AX=");
+//     WR.print(_sensor->getAngleX());
+//     WR.print(",AZ=");
+//     WR.print(_sensor->getAngleZ());
+//     WR.println("");
+// }
 
 void CommunicationSerial::_wheelControl(char data)
 {
@@ -128,10 +134,10 @@ void CommunicationSerial::_wheelControl(char data)
         _motor->ADVANCE_LEFT(_motor_pwm);
         break;
     case 'L':
-        _motor_pwm = constrain(_motor_pwm + 170, MAX_PWM, MIN_PWM);
+        _motor_pwm = constrain(_motor_pwm + 25, MAX_PWM, MIN_PWM);
         break;
     case 'M':
-        _motor_pwm = constrain(_motor_pwm - 170, MAX_PWM, MIN_PWM);
+        _motor_pwm = constrain(_motor_pwm - 25, MAX_PWM, MIN_PWM);
         break;
     case 'Z':
         _motor->STOP();
@@ -150,7 +156,7 @@ void CommunicationSerial::_wheelControl(char data)
     }
 }
 
-String CommunicationSerial::_controlDisplay(char data)
+String CommunicationSerial::_commandToString(char data)
 {
     switch (data)
     {

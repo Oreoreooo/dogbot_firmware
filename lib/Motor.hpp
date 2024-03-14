@@ -21,8 +21,8 @@
 #define DIRD2 A5 // Motor D Direction -
 
 // PWM Definition
-#define MAX_PWM 2000
-#define MIN_PWM 300
+#define MAX_PWM 255
+#define MIN_PWM 0
 
 class Motor
 {
