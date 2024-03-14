@@ -10,7 +10,7 @@ Display_SSD1306 display;
 Sensor sensor;
 Motor motor;
 
-Communication comm(display, motor, sensor);
+CommunicationSerial comm(&display, &motor, &sensor);
 
 void setup()
 {
@@ -68,7 +68,7 @@ void loop()
 
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
     static char data[16];
-    sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ());
+    sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ() + 90);
     display.show(data);
     delay(2000);
     state = TRANSFER;

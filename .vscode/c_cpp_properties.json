@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Arduino",
-            "compilerPath": "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\bin\\avr-g++",
+            "compilerPath": "/home/RawBass/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
             "compilerArgs": [
                 "-w",
                 "-std=gnu++11",
@@ -16,20 +16,20 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
-                "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\mega",
-                "C:\\Users\\expfo\\Documents\\Arduino\\libraries\\Adafruit_GFX_Library",
-                "C:\\Users\\expfo\\Documents\\Arduino\\libraries\\Adafruit_BusIO",
-                "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\Wire\\src",
-                "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\SPI\\src",
-                "C:\\Users\\expfo\\Documents\\Arduino\\libraries\\Adafruit_SSD1306",
-                "C:\\Users\\expfo\\Documents\\Arduino\\libraries\\MPU6050_light\\src",
-                "c:\\users\\expfo\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\lib\\gcc\\avr\\7.3.0\\include",
-                "c:\\users\\expfo\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\lib\\gcc\\avr\\7.3.0\\include-fixed",
-                "c:\\users\\expfo\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\avr\\include"
+                "/home/RawBass/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino",
+                "/home/RawBass/.arduino15/packages/arduino/hardware/avr/1.8.6/variants/mega",
+                "/home/RawBass/Arduino/libraries/Adafruit_GFX_Library",
+                "/home/RawBass/Arduino/libraries/Adafruit_BusIO",
+                "/home/RawBass/.arduino15/packages/arduino/hardware/avr/1.8.6/libraries/Wire/src",
+                "/home/RawBass/.arduino15/packages/arduino/hardware/avr/1.8.6/libraries/SPI/src",
+                "/home/RawBass/Arduino/libraries/Adafruit_SSD1306",
+                "/home/RawBass/Arduino/libraries/MPU6050_light/src",
+                "/home/RawBass/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include",
+                "/home/RawBass/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/lib/gcc/avr/7.3.0/include-fixed",
+                "/home/RawBass/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/avr/include"
             ],
             "forcedInclude": [
-                "C:\\Users\\expfo\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\Arduino.h"
+                "/home/RawBass/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",
