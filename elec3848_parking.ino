@@ -10,7 +10,7 @@ Display_SSD1306 display;
 Sensor sensor;
 Motor motor;
 
-Communication comm(display, motor, sensor);
+CommunicationSerial comm(&display, &motor, &sensor);
 
 void setup()
 {
@@ -31,10 +31,11 @@ void loop()
 
   sensor.update();
 
-  if (millis() > (tx_time + 1000))
+  if (millis() > (tx_time + 100))
   {
     tx_time = millis();
     comm.serialSensorDataTX();
+    comm.displaySensorData();
   }
 
   if (millis() > (rx_time + 15))
@@ -44,47 +45,47 @@ void loop()
     wr_data = comm.wirelessControlRX();
   }
 
-  switch (state)
-  {
-  case IDLE: // After start, wait for 2 sec
-    if (sr_data == 'S' || wr_data == 'S')
-    {
-      delay(2000);
-      state = MOVE;
-    }
-    break;
+  // switch (state)
+  // {
+  // case IDLE: // After start, wait for 2 sec
+  //   if (sr_data == 'S' || wr_data == 'S')
+  //   {
+  //     delay(2000);
+  //     state = MOVE;
+  //   }
+  //   break;
 
-  case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
-    delay(2000);
-    state = TURN;
-    break;
+  // case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
+  //   delay(2000);
+  //   state = TURN;
+  //   break;
 
-  case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
-    delay(2000);
-    delay(2000);
-    delay(2000);
-    state = MEASURE;
-    break;
+  // case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
+  //   delay(2000);
+  //   delay(2000);
+  //   delay(2000);
+  //   state = MEASURE;
+  //   break;
 
-  case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
-    static char data[16];
-    sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ());
-    display.show(data);
-    delay(2000);
-    state = TRANSFER;
-    break;
+  // case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
+  //   static char data[16];
+  //   sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ() + 90);
+  //   display.show(data);
+  //   delay(2000);
+  //   state = TRANSFER;
+  //   break;
 
-  case TRANSFER: // Transfer to the parking location.
-    delay(2000);
-    state = PARKING;
-    break;
+  // case TRANSFER: // Transfer to the parking location.
+  //   delay(2000);
+  //   state = PARKING;
+  //   break;
 
-  case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
-    delay(2000);
-    state = STOP;
-    break;
+  // case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
+  //   delay(2000);
+  //   state = STOP;
+  //   break;
 
-  default:
-    break;
-  }
+  // default:
+  //   break;
+  // }
 }

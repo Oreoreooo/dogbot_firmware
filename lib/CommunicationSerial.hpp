@@ -9,148 +9,154 @@
 #define SR Serial  // Serial on USB
 #define WR Serial3 // Wireless Module on Serial 3 (D14 & D15)
 
-class Communication
+class CommunicationSerial
 {
 public:
-    Communication(Display_SSD1306 display, Motor motor, Sensor sensor);
+    CommunicationSerial(Display_SSD1306 *display, Motor *motor, Sensor *sensor);
     void begin();
 
     char serialControlRX();
     char wirelessControlRX();
+
+    void displaySensorData();
+
     void serialSensorDataTX();
-    void wirelessSensorDataTX();
+    // void wirelessSensorDataTX();
 
 private:
     void _wheelControl(char data);
-    String _controlDisplay(char data);
+    String _commandToString(char data);
 
-    Display_SSD1306 _display;
-    Motor _motor;
-    Sensor _sensor;
+    Display_SSD1306 *_display;
+    Motor *_motor;
+    Sensor *_sensor;
 
     int _motor_pwm;
 };
 
-Communication::Communication(Display_SSD1306 display, Motor motor, Sensor sensor) : _display(display), _motor(motor), _sensor(sensor), _motor_pwm(1150) {}
+CommunicationSerial::CommunicationSerial(Display_SSD1306 *display, Motor *motor, Sensor *sensor) : _display(display), _motor(motor), _sensor(sensor), _motor_pwm(255) {}
 
-void Communication::begin()
+void CommunicationSerial::begin()
 {
     SR.begin(115200);
     WR.begin(9600);
 }
 
-char Communication::serialControlRX()
+char CommunicationSerial::serialControlRX()
 {
     static char data;
     if (SR.available())
     {
         data = SR.read();
         SR.flush();
-        _display.show(_controlDisplay(data));
+        // _display->show(_commandToString(data));
         _wheelControl(data);
     }
     return data;
 }
 
-char Communication::wirelessControlRX()
+char CommunicationSerial::wirelessControlRX()
 {
     static char data;
     if (WR.available())
     {
         data = WR.read();
         WR.flush();
-        _display.show(_controlDisplay(data));
+        // _display->show(_commandToString(data));
         _wheelControl(data);
     }
     return data;
 }
 
-void Communication::serialSensorDataTX()
+void CommunicationSerial::displaySensorData()
+{
+    static char data[50];
+    sprintf(data, "L: %-4d  R: %-4d\nD: %-6.1f\nX: %-5.2f  Z: %-5.2f", _sensor->getLightL(), _sensor->getLightR(), _sensor->getDistance(), _sensor->getAngleX(), _sensor->getAngleZ());
+    _display->show(data);
+}
+
+void CommunicationSerial::serialSensorDataTX()
 {
     SR.print("LL=");
-    SR.print(_sensor.getLightL());
+    SR.print(_sensor->getLightL());
     SR.print(",LR=");
-    SR.print(_sensor.getLightR());
+    SR.print(_sensor->getLightR());
     SR.print(",DT=");
-    SR.print(_sensor.getDepth() * 0.0001);
+    SR.print(_sensor->getDistance());
     SR.print(",AX=");
-    SR.print(_sensor.getAngleX());
-    SR.print(",AY=");
-    SR.print(_sensor.getAngleY());
+    SR.print(_sensor->getAngleX());
     SR.print(",AZ=");
-    SR.print(_sensor.getAngleZ());
+    SR.print(_sensor->getAngleZ());
     SR.println("");
 }
 
-void Communication::wirelessSensorDataTX()
-{
-    WR.print("LL=");
-    WR.print(_sensor.getLightL());
-    WR.print(",LR=");
-    WR.print(_sensor.getLightR());
-    WR.print(",DT=");
-    WR.print(_sensor.getDepth() * 0.0001);
-    WR.print(",AX=");
-    WR.print(_sensor.getAngleX());
-    WR.print(",AY=");
-    WR.print(_sensor.getAngleY());
-    WR.print(",AZ=");
-    WR.print(_sensor.getAngleZ());
-    WR.println("");
-}
+// void CommunicationSerial::wirelessSensorDataTX()
+// {
+//     WR.print("LL=");
+//     WR.print(_sensor->getLightL());
+//     WR.print(",LR=");
+//     WR.print(_sensor->getLightR());
+//     WR.print(",DT=");
+//     WR.print(_sensor->getDistance());
+//     WR.print(",AX=");
+//     WR.print(_sensor->getAngleX());
+//     WR.print(",AZ=");
+//     WR.print(_sensor->getAngleZ());
+//     WR.println("");
+// }
 
-void Communication::_wheelControl(char data)
+void CommunicationSerial::_wheelControl(char data)
 {
     switch (data)
     {
     case 'A':
-        _motor.ADVANCE(_motor_pwm);
+        _motor->ADVANCE(_motor_pwm);
         break;
     case 'B':
-        _motor.ADVANCE_RIGHT(_motor_pwm);
+        _motor->ADVANCE_RIGHT(_motor_pwm);
         break;
     case 'C':
-        _motor.ROTATE_CW(_motor_pwm);
+        _motor->ROTATE_CW(_motor_pwm);
         break;
     case 'D':
-        _motor.BACK_RIGHT(_motor_pwm);
+        _motor->BACK_RIGHT(_motor_pwm);
         break;
     case 'E':
-        _motor.BACK(_motor_pwm);
+        _motor->BACK(_motor_pwm);
         break;
     case 'F':
-        _motor.BACK_LEFT(_motor_pwm);
+        _motor->BACK_LEFT(_motor_pwm);
         break;
     case 'G':
-        _motor.ROTATE_CCW(_motor_pwm);
+        _motor->ROTATE_CCW(_motor_pwm);
         break;
     case 'H':
-        _motor.ADVANCE_LEFT(_motor_pwm);
+        _motor->ADVANCE_LEFT(_motor_pwm);
         break;
     case 'L':
-        _motor_pwm = constrain(_motor_pwm + 170, MAX_PWM, MIN_PWM);
+        _motor_pwm = constrain(_motor_pwm + 25, MAX_PWM, MIN_PWM);
         break;
     case 'M':
-        _motor_pwm = constrain(_motor_pwm - 170, MAX_PWM, MIN_PWM);
+        _motor_pwm = constrain(_motor_pwm - 25, MAX_PWM, MIN_PWM);
         break;
     case 'Z':
-        _motor.STOP();
+        _motor->STOP();
         break;
     case 'z':
-        _motor.STOP();
+        _motor->STOP();
         break;
     case 'd':
-        _motor.LEFT(_motor_pwm);
+        _motor->LEFT(_motor_pwm);
         break;
     case 'b':
-        _motor.RIGHT(_motor_pwm);
+        _motor->RIGHT(_motor_pwm);
         break;
     default:
         break;
     }
 }
 
-String Communication::_controlDisplay(char data)
+String CommunicationSerial::_commandToString(char data)
 {
     switch (data)
     {

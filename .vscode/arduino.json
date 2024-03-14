@@ -2,5 +2,6 @@
     "configuration": "cpu=atmega2560",
     "board": "arduino:avr:mega",
     "sketch": "elec3848_parking.ino",
-    "port": "COM4"
+    "port": "/dev/ttyUSB2",
+    "output": "../build"
 }
