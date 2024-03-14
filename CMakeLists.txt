@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/ArduinoToolchain.cmake)
 set(CMAKE_CXX_STANDARD 17)
-set(PROJECT_NAME well)
+set(PROJECT_NAME elec3848_parking)
 
 set(${PROJECT_NAME}_BOARD megaADK)
 # set(ARDUINO_CPU)
@@ -16,7 +16,7 @@ project(${PROJECT_NAME})
 # set(${PROJECT_NAME}_LIBS)
 
 ### Main sketch file
-set(${PROJECT_NAME}_SKETCH well.ino)
+set(${PROJECT_NAME}_SKETCH elec3848_parking.ino)
 
 ### Add project directories into the build
 # add_subdirectory()
