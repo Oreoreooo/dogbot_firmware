@@ -28,38 +28,92 @@ class Motor
 {
 public:
     Motor(void);
+    inline void motorControl(char command);
+    
+    inline void BACK(uint8_t motor_pwm);
+    inline void ADVANCE(uint8_t motor_pwm);
+    inline void ADVANCE_LEFT(uint8_t motor_pwm);
+    inline void RIGHT(uint8_t motor_pwm);
+    inline void BACK_LEFT(uint8_t motor_pwm);
+    inline void ADVANCE_RIGHT(uint8_t motor_pwm);
+    inline void LEFT(uint8_t motor_pwm);
+    inline void BACK_RIGHT(uint8_t motor_pwm);
+    inline void ROTATE_CW(uint8_t motor_pwm);
+    inline void ROTATE_CCW(uint8_t motor_pwm);
 
-    void BACK(uint8_t motor_pwm);
-    void ADVANCE(uint8_t motor_pwm);
-    void ADVANCE_LEFT(uint8_t motor_pwm);
-    void RIGHT(uint8_t motor_pwm);
-    void BACK_LEFT(uint8_t motor_pwm);
-    void ADVANCE_RIGHT(uint8_t motor_pwm);
-    void LEFT(uint8_t motor_pwm);
-    void BACK_RIGHT(uint8_t motor_pwm);
-    void ROTATE_CW(uint8_t motor_pwm);
-    void ROTATE_CCW(uint8_t motor_pwm);
-
-    void BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    void STOP();
+    inline void BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
+    inline void STOP();
 
 private:
     int _A_DIRECTION;
     int _B_DIRECTION;
     int _C_DIRECTION;
     int _D_DIRECTION;
+
+    int _motor_pwm;
 };
 
-Motor::Motor(void) : _A_DIRECTION(1), _B_DIRECTION(-1), _C_DIRECTION(-1), _D_DIRECTION(1) {}
+Motor::Motor(void) : _A_DIRECTION(1), _B_DIRECTION(-1), _C_DIRECTION(-1), _D_DIRECTION(1), _motor_pwm(255) {}
+
+inline void Motor::motorControl(char command)
+{
+    switch (command)
+    {
+    case 'A':
+        ADVANCE(_motor_pwm);
+        break;
+    case 'B':
+        ADVANCE_RIGHT(_motor_pwm);
+        break;
+    case 'C':
+        ROTATE_CW(_motor_pwm);
+        break;
+    case 'D':
+        BACK_RIGHT(_motor_pwm);
+        break;
+    case 'E':
+        BACK(_motor_pwm);
+        break;
+    case 'F':
+        BACK_LEFT(_motor_pwm);
+        break;
+    case 'G':
+        ROTATE_CCW(_motor_pwm);
+        break;
+    case 'H':
+        ADVANCE_LEFT(_motor_pwm);
+        break;
+    case 'L':
+        _motor_pwm = constrain(_motor_pwm + 25, MAX_PWM, MIN_PWM);
+        break;
+    case 'M':
+        _motor_pwm = constrain(_motor_pwm - 25, MAX_PWM, MIN_PWM);
+        break;
+    case 'Z':
+        STOP();
+        break;
+    case 'z':
+        STOP();
+        break;
+    case 'd':
+        LEFT(_motor_pwm);
+        break;
+    case 'b':
+        RIGHT(_motor_pwm);
+        break;
+    default:
+        break;
+    }
+}
 
 #define MOTORA_FORWARD(pwm)        \
     do                             \
@@ -153,7 +207,7 @@ Motor::Motor(void) : _A_DIRECTION(1), _B_DIRECTION(-1), _C_DIRECTION(-1), _D_DIR
 //     |  |  |
 //     |  ↓  |
 //    ↓C-----D↓
-void Motor::BACK(uint8_t motor_pwm)
+inline void Motor::BACK(uint8_t motor_pwm)
 {
     MOTORA_BACKOFF(motor_pwm);
     MOTORB_BACKOFF(motor_pwm);
@@ -165,7 +219,7 @@ void Motor::BACK(uint8_t motor_pwm)
 //     |  ↑  |
 //     |  |  |
 //    ↑C-----D↑
-void Motor::ADVANCE(uint8_t motor_pwm)
+inline void Motor::ADVANCE(uint8_t motor_pwm)
 {
     MOTORA_FORWARD(motor_pwm);
     MOTORB_FORWARD(motor_pwm);
@@ -176,7 +230,7 @@ void Motor::ADVANCE(uint8_t motor_pwm)
 //     |   ↖ |
 //     | ↖   |
 //    ↑C-----D=
-void Motor::ADVANCE_LEFT(uint8_t motor_pwm)
+inline void Motor::ADVANCE_LEFT(uint8_t motor_pwm)
 {
     MOTORA_STOP(motor_pwm);
     MOTORB_FORWARD(motor_pwm);
@@ -188,7 +242,7 @@ void Motor::ADVANCE_LEFT(uint8_t motor_pwm)
 //     |  ←  |
 //     |  ←  |
 //    ↑C-----D↓
-void Motor::LEFT(uint8_t motor_pwm)
+inline void Motor::LEFT(uint8_t motor_pwm)
 {
     MOTORA_BACKOFF(motor_pwm);
     MOTORB_FORWARD(motor_pwm);
@@ -199,7 +253,7 @@ void Motor::LEFT(uint8_t motor_pwm)
 //     | ↙   |
 //     |   ↙ |
 //    =C-----D↓
-void Motor::BACK_LEFT(uint8_t motor_pwm)
+inline void Motor::BACK_LEFT(uint8_t motor_pwm)
 {
     MOTORA_BACKOFF(motor_pwm);
     MOTORB_STOP(motor_pwm);
@@ -210,7 +264,7 @@ void Motor::BACK_LEFT(uint8_t motor_pwm)
 //     | ↗   |
 //     |   ↗ |
 //    =C-----D↑
-void Motor::ADVANCE_RIGHT(uint8_t motor_pwm)
+inline void Motor::ADVANCE_RIGHT(uint8_t motor_pwm)
 {
     MOTORA_FORWARD(motor_pwm);
     MOTORB_STOP(motor_pwm);
@@ -221,7 +275,7 @@ void Motor::ADVANCE_RIGHT(uint8_t motor_pwm)
 //     |  →  |
 //     |  →  |
 //    ↓C-----D↑
-void Motor::RIGHT(uint8_t motor_pwm)
+inline void Motor::RIGHT(uint8_t motor_pwm)
 {
     MOTORA_FORWARD(motor_pwm);
     MOTORB_BACKOFF(motor_pwm);
@@ -232,7 +286,7 @@ void Motor::RIGHT(uint8_t motor_pwm)
 //     |   ↘ |
 //     | ↘   |
 //    ↓C-----D=
-void Motor::BACK_RIGHT(uint8_t motor_pwm)
+inline void Motor::BACK_RIGHT(uint8_t motor_pwm)
 {
     MOTORA_STOP(motor_pwm);
     MOTORB_BACKOFF(motor_pwm);
@@ -244,7 +298,7 @@ void Motor::BACK_RIGHT(uint8_t motor_pwm)
 //     | ↗ ↘ |
 //     | ↖ ↙ |
 //    ↑C-----D↓
-void Motor::ROTATE_CW(uint8_t motor_pwm)
+inline void Motor::ROTATE_CW(uint8_t motor_pwm)
 {
     MOTORA_FORWARD(motor_pwm);
     MOTORB_BACKOFF(motor_pwm);
@@ -256,7 +310,7 @@ void Motor::ROTATE_CW(uint8_t motor_pwm)
 //     | ↙ ↖ |
 //     | ↘ ↗ |
 //    ↓C-----D↑
-void Motor::ROTATE_CCW(uint8_t motor_pwm)
+inline void Motor::ROTATE_CCW(uint8_t motor_pwm)
 {
     MOTORA_BACKOFF(motor_pwm);
     MOTORB_FORWARD(motor_pwm);
@@ -268,7 +322,7 @@ void Motor::ROTATE_CCW(uint8_t motor_pwm)
 //     |  |  |
 //     |  ↓  |
 //    ↓C-----D↓
-void Motor::BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_BACKOFF(pwm_A);
     MOTORB_BACKOFF(pwm_B);
@@ -280,7 +334,7 @@ void Motor::BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 //     |  ↑  |
 //     |  |  |
 //    ↑C-----D↑
-void Motor::ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_FORWARD(pwm_A);
     MOTORB_FORWARD(pwm_B);
@@ -291,7 +345,7 @@ void Motor::ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 //     |   ↖ |
 //     | ↖   |
 //    ↑C-----D=
-void Motor::ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_STOP(pwm_A);
     MOTORB_FORWARD(pwm_B);
@@ -303,7 +357,7 @@ void Motor::ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pw
 //     |  ←  |
 //     |  ←  |
 //    ↑C-----D↓
-void Motor::LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_BACKOFF(pwm_A);
     MOTORB_FORWARD(pwm_B);
@@ -314,7 +368,7 @@ void Motor::LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 //     | ↙   |
 //     |   ↙ |
 //    =C-----D↓
-void Motor::BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_BACKOFF(pwm_A);
     MOTORB_STOP(pwm_B);
@@ -325,7 +379,7 @@ void Motor::BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D
 //     | ↗   |
 //     |   ↗ |
 //    =C-----D↑
-void Motor::ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_FORWARD(pwm_A);
     MOTORB_STOP(pwm_B);
@@ -336,7 +390,7 @@ void Motor::ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t p
 //     |  →  |
 //     |  →  |
 //    ↓C-----D↑
-void Motor::RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_FORWARD(pwm_A);
     MOTORB_BACKOFF(pwm_B);
@@ -347,7 +401,7 @@ void Motor::RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 //     |   ↘ |
 //     | ↘   |
 //    ↓C-----D=
-void Motor::BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_STOP(pwm_A);
     MOTORB_BACKOFF(pwm_B);
@@ -359,7 +413,7 @@ void Motor::BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_
 //     | ↗ ↘ |
 //     | ↖ ↙ |
 //    ↑C-----D↓
-void Motor::ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_FORWARD(pwm_A);
     MOTORB_BACKOFF(pwm_B);
@@ -371,7 +425,7 @@ void Motor::ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D
 //     | ↙ ↖ |
 //     | ↘ ↗ |
 //    ↓C-----D↑
-void Motor::ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
+inline void Motor::ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
 {
     MOTORA_BACKOFF(pwm_A);
     MOTORB_FORWARD(pwm_B);
@@ -383,7 +437,7 @@ void Motor::ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_
 //     |  =  |
 //     |  =  |
 //    =C-----D=
-void Motor::STOP()
+inline void Motor::STOP()
 {
     MOTORA_STOP(0);
     MOTORB_STOP(0);

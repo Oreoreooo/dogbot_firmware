@@ -32,7 +32,7 @@ private:
 
 MotorFeedback::MotorEncoder(void) : ECDA(Encoder(ECDAA, ECDAB)), ECDB(Encoder(ECDBA, ECDBB)), ECDC(Encoder(ECDCA, ECDCB)), ECDD(Encoder(ECDDA, ECDDB)), _ECD{0, 0, 0, 0} {}
 
-long *MotorFeedback::read()
+inline long *MotorFeedback::read()
 {
     _ECD[0] = ECDA.read();
     _ECD[1] = ECDB.read();
