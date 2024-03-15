@@ -1,16 +1,19 @@
 #include "lib/CommunicationSerial.hpp"
 #include "lib/Display_SSD1306.hpp"
 #include "lib/Motor.hpp"
+#include "lib/MotorController.hpp"
 #include "lib/Sensor.hpp"
 #include "lib/State.h"
 #include <Arduino.h>
 
 ControlState state = IDLE;
+CommunicationSerial comm;
 Display_SSD1306 display;
 Sensor sensor;
 Motor motor;
+MotorController motor_controller(&motor);
 
-CommunicationSerial comm(&display, &motor, &sensor);
+bool start_flag;
 
 void setup()
 {
@@ -20,72 +23,80 @@ void setup()
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
+  motor.ADVANCE(255);
+}
+
+inline void Driver()
+{
+  switch (state)
+  {
+  case IDLE: // After start, wait for 2 sec
+    if (start_flag)
+    {
+      delay(2000);
+      state = MOVE;
+    }
+    break;
+
+  case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
+    delay(2000);
+    state = TURN;
+    break;
+
+  case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
+    delay(2000);
+    delay(2000);
+    delay(2000);
+    state = MEASURE;
+    break;
+
+  case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
+    display.displayMeasured(&sensor);
+    delay(2000);
+    state = TRANSFER;
+    break;
+
+  case TRANSFER: // Transfer to the parking location.
+    delay(2000);
+    state = PARKING;
+    break;
+
+  case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
+    delay(2000);
+    state = STOP;
+    break;
+
+  default:
+    break;
+  }
 }
 
 void loop()
 {
-  static unsigned long rx_time;
-  static unsigned long tx_time;
+  static unsigned long recv_time;
+  static unsigned long send_time;
   static char sr_data;
   static char wr_data;
 
   sensor.update();
 
-  if (millis() > (tx_time + 100))
+  if (millis() > (send_time + 150))
   {
-    tx_time = millis();
-    comm.serialSensorDataTX();
-    comm.displaySensorData();
+    send_time = millis();
+    // comm.serialSensorDataTX(&sensor);
+    comm.wirelessSensorDataTX(&sensor);
+    display.displaySensorData(&sensor);
   }
 
-  if (millis() > (rx_time + 15))
+  if (millis() > (recv_time + 15))
   {
-    rx_time = millis();
-    sr_data = comm.serialControlRX();
-    wr_data = comm.wirelessControlRX();
+    recv_time = millis();
+    sr_data = comm.serialControlMotor(&motor_controller);
+    // wr_data = comm.wirelessControlMotor(&motor_controller);
+    start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
-  // switch (state)
-  // {
-  // case IDLE: // After start, wait for 2 sec
-  //   if (sr_data == 'S' || wr_data == 'S')
-  //   {
-  //     delay(2000);
-  //     state = MOVE;
-  //   }
-  //   break;
+  motor_controller.run();
 
-  // case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
-  //   delay(2000);
-  //   state = TURN;
-  //   break;
-
-  // case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
-  //   delay(2000);
-  //   delay(2000);
-  //   delay(2000);
-  //   state = MEASURE;
-  //   break;
-
-  // case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
-  //   static char data[16];
-  //   sprintf(data, "D: %.3f\nA: %.3f", sensor.getDepth() * 0.0001, sensor.getAngleZ() + 90);
-  //   display.show(data);
-  //   delay(2000);
-  //   state = TRANSFER;
-  //   break;
-
-  // case TRANSFER: // Transfer to the parking location.
-  //   delay(2000);
-  //   state = PARKING;
-  //   break;
-
-  // case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
-  //   delay(2000);
-  //   state = STOP;
-  //   break;
-
-  // default:
-  //   break;
-  // }
+  // Driver();
 }
