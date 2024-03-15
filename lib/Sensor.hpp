@@ -15,7 +15,7 @@ public:
   Sensor(void);
 
   void begin();
-  void update();
+  inline void update();
 
   inline int getLightL();
   inline int getLightR();
@@ -31,7 +31,7 @@ public:
 
 private:
   MPU6050 _mpu;
-
+  inline void _updateDistance();
   unsigned long _pulse_duration;
   int _light_l;
   int _light_r;
@@ -51,50 +51,50 @@ void Sensor::begin()
   delay(500);
   _mpu.calcGyroOffsets();
   _mpu.setFilterGyroCoef(0.965);
-  _light_l = analogRead(PTR_L);
-  _light_r = analogRead(PTR_R);
 }
 
-void Sensor::update()
+inline void Sensor::_updateDistance()
 {
-  static unsigned long pulse_duration;
-  static unsigned long start_time;
-  static unsigned long delay_time;
+  static unsigned long pulse_start_time;
+  static unsigned long measure_start_time;
   static bool measure_start = false;
   static bool measure_done = false;
 
-  _mpu.update();
-
-  if (millis() > (delay_time + 65))
+  if (millis() > (measure_start_time + 65))
   {
-    delay_time = millis();
+    measure_start_time = millis();
     measure_start = true;
   }
 
   if (measure_start && measure_done)
   {
     measure_done = false;
-    start_time = micros();
+    pulse_start_time = micros();
     digitalWrite(LSR, LOW);
   }
-
-  if (micros() > start_time + 8)
+  
+  if (micros() > pulse_start_time + 8)
   {
-    digitalWrite(LSR, micros() > start_time + 16 ? LOW : HIGH);
+    digitalWrite(LSR, HIGH);
   }
 
-  if (micros() > start_time + 700)
+
+  if (micros() > pulse_start_time + 16)
   {
     pinMode(LSR, INPUT);
-    pulse_duration = pulseInLong(LSR, HIGH, 12000);
-    _pulse_duration = 0.9 * _pulse_duration + 0.1 * pulse_duration;
+    _pulse_duration = 0.9 * _pulse_duration + 0.1 * pulseInLong(LSR, HIGH, 12000);
     pinMode(LSR, OUTPUT);
     measure_done = true;
     measure_start = false;
   }
+}
 
+inline void Sensor::update()
+{
+  _mpu.update();
   _light_l = 0.9 * _light_l + 0.1 * analogRead(PTR_L);
   _light_r = 0.9 * _light_r + 0.1 * analogRead(PTR_R);
+  _updateDistance();
 }
 
 inline int Sensor::getLightL()
