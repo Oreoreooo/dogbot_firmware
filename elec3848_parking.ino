@@ -23,7 +23,7 @@ void setup()
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
-  motor.ADVANCE(255);
+  motor.MOVE(0, 0, 0, 127);
 }
 
 inline void Driver()
@@ -75,6 +75,7 @@ void loop()
 {
   static unsigned long recv_time;
   static unsigned long send_time;
+  static unsigned long pid_time;
   static char sr_data;
   static char wr_data;
 
@@ -84,15 +85,15 @@ void loop()
   {
     send_time = millis();
     // comm.serialSensorDataTX(&sensor);
-    comm.wirelessSensorDataTX(&sensor);
+    // comm.wirelessSensorDataTX(&sensor);
     display.displaySensorData(&sensor);
   }
 
   if (millis() > (recv_time + 15))
   {
     recv_time = millis();
-    sr_data = comm.serialControlMotor(&motor_controller);
-    // wr_data = comm.wirelessControlMotor(&motor_controller);
+    // sr_data = comm.serialControlMotor(&motor_controller);
+    wr_data = comm.wirelessControlMotor(&motor_controller);
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
