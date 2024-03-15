@@ -9,27 +9,30 @@
 #define DIRA2 35 // Motor A Direction -
 
 #define PWMB 8   // Motor B PWM
-#define DIRB1 37 // Motor C Direction +
-#define DIRB2 36 // Motor B Direction -
+#define DIRB1 36 // Motor B Direction +
+#define DIRB2 37 // Motor B Direction -
 
 #define PWMC 6   // Motor C PWM
 #define DIRC1 43 // Motor C Direction +
 #define DIRC2 42 // Motor C Direction -
 
 #define PWMD 5   // Motor D PWM
-#define DIRD1 A4 // Motor D Direction +
-#define DIRD2 A5 // Motor D Direction -
+#define DIRD1 A5 // Motor D Direction +
+#define DIRD2 A4 // Motor D Direction -
 
 // PWM Definition
 #define MAX_PWM 255
 #define MIN_PWM 0
 
+#define MOTOR_RADIUS 1.5 // cm
+
 class Motor
 {
 public:
     Motor(void);
-    inline void motorControl(char command);
-    
+
+    inline void setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D);
+
     inline void BACK(uint8_t motor_pwm);
     inline void ADVANCE(uint8_t motor_pwm);
     inline void ADVANCE_LEFT(uint8_t motor_pwm);
@@ -40,80 +43,20 @@ public:
     inline void BACK_RIGHT(uint8_t motor_pwm);
     inline void ROTATE_CW(uint8_t motor_pwm);
     inline void ROTATE_CCW(uint8_t motor_pwm);
-
-    inline void BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
-    inline void ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D);
     inline void STOP();
 
+    inline void MOVE(uint8_t speed_A, uint8_t speed_B, uint8_t speed_C, uint8_t speed_D);
+
 private:
+    inline void _setDirection(uint8_t speed, uint8_t dir_pin_pos, uint8_t dir_pin_neg);
+
     int _A_DIRECTION;
     int _B_DIRECTION;
     int _C_DIRECTION;
     int _D_DIRECTION;
-
-    int _motor_pwm;
 };
 
-Motor::Motor(void) : _A_DIRECTION(1), _B_DIRECTION(-1), _C_DIRECTION(-1), _D_DIRECTION(1), _motor_pwm(255) {}
-
-inline void Motor::motorControl(char command)
-{
-    switch (command)
-    {
-    case 'A':
-        ADVANCE(_motor_pwm);
-        break;
-    case 'B':
-        ADVANCE_RIGHT(_motor_pwm);
-        break;
-    case 'C':
-        ROTATE_CW(_motor_pwm);
-        break;
-    case 'D':
-        BACK_RIGHT(_motor_pwm);
-        break;
-    case 'E':
-        BACK(_motor_pwm);
-        break;
-    case 'F':
-        BACK_LEFT(_motor_pwm);
-        break;
-    case 'G':
-        ROTATE_CCW(_motor_pwm);
-        break;
-    case 'H':
-        ADVANCE_LEFT(_motor_pwm);
-        break;
-    case 'L':
-        _motor_pwm = constrain(_motor_pwm + 25, MAX_PWM, MIN_PWM);
-        break;
-    case 'M':
-        _motor_pwm = constrain(_motor_pwm - 25, MAX_PWM, MIN_PWM);
-        break;
-    case 'Z':
-        STOP();
-        break;
-    case 'z':
-        STOP();
-        break;
-    case 'd':
-        LEFT(_motor_pwm);
-        break;
-    case 'b':
-        RIGHT(_motor_pwm);
-        break;
-    default:
-        break;
-    }
-}
+Motor::Motor(void) : _A_DIRECTION(1), _B_DIRECTION(-1), _C_DIRECTION(-1), _D_DIRECTION(1) {}
 
 #define MOTORA_FORWARD(pwm)        \
     do                             \
@@ -140,8 +83,8 @@ inline void Motor::motorControl(char command)
 #define MOTORB_FORWARD(pwm)        \
     do                             \
     {                              \
-        digitalWrite(DIRB1, HIGH); \
-        digitalWrite(DIRB2, LOW);  \
+        digitalWrite(DIRB1, LOW);  \
+        digitalWrite(DIRB2, HIGH); \
         analogWrite(PWMB, pwm);    \
     } while (0)
 #define MOTORB_STOP(x)            \
@@ -154,8 +97,8 @@ inline void Motor::motorControl(char command)
 #define MOTORB_BACKOFF(pwm)        \
     do                             \
     {                              \
-        digitalWrite(DIRB1, LOW);  \
-        digitalWrite(DIRB2, HIGH); \
+        digitalWrite(DIRB1, HIGH); \
+        digitalWrite(DIRB2, LOW);  \
         analogWrite(PWMB, pwm);    \
     } while (0)
 
@@ -184,8 +127,8 @@ inline void Motor::motorControl(char command)
 #define MOTORD_FORWARD(pwm)        \
     do                             \
     {                              \
-        digitalWrite(DIRD1, HIGH); \
-        digitalWrite(DIRD2, LOW);  \
+        digitalWrite(DIRD1, LOW);  \
+        digitalWrite(DIRD2, HIGH); \
         analogWrite(PWMD, pwm);    \
     } while (0)
 #define MOTORD_STOP(x)            \
@@ -198,8 +141,8 @@ inline void Motor::motorControl(char command)
 #define MOTORD_BACKOFF(pwm)        \
     do                             \
     {                              \
-        digitalWrite(DIRD1, LOW);  \
-        digitalWrite(DIRD2, HIGH); \
+        digitalWrite(DIRD1, HIGH); \
+        digitalWrite(DIRD2, LOW);  \
         analogWrite(PWMD, pwm);    \
     } while (0)
 
@@ -318,121 +261,6 @@ inline void Motor::ROTATE_CCW(uint8_t motor_pwm)
     MOTORD_FORWARD(motor_pwm);
 }
 
-//    ↓A-----B↓
-//     |  |  |
-//     |  ↓  |
-//    ↓C-----D↓
-inline void Motor::BACK(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_BACKOFF(pwm_A);
-    MOTORB_BACKOFF(pwm_B);
-    MOTORC_BACKOFF(pwm_C);
-    MOTORD_BACKOFF(pwm_D);
-}
-
-//    ↑A-----B↑
-//     |  ↑  |
-//     |  |  |
-//    ↑C-----D↑
-inline void Motor::ADVANCE(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_FORWARD(pwm_A);
-    MOTORB_FORWARD(pwm_B);
-    MOTORC_FORWARD(pwm_C);
-    MOTORD_FORWARD(pwm_D);
-}
-//    =A-----B↑
-//     |   ↖ |
-//     | ↖   |
-//    ↑C-----D=
-inline void Motor::ADVANCE_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_STOP(pwm_A);
-    MOTORB_FORWARD(pwm_B);
-    MOTORC_FORWARD(pwm_C);
-    MOTORD_STOP(pwm_D);
-}
-
-//    ↓A-----B↑
-//     |  ←  |
-//     |  ←  |
-//    ↑C-----D↓
-inline void Motor::LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_BACKOFF(pwm_A);
-    MOTORB_FORWARD(pwm_B);
-    MOTORC_FORWARD(pwm_C);
-    MOTORD_BACKOFF(pwm_D);
-}
-//    ↓A-----B=
-//     | ↙   |
-//     |   ↙ |
-//    =C-----D↓
-inline void Motor::BACK_LEFT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_BACKOFF(pwm_A);
-    MOTORB_STOP(pwm_B);
-    MOTORC_STOP(pwm_C);
-    MOTORD_BACKOFF(pwm_D);
-}
-//    ↑A-----B=
-//     | ↗   |
-//     |   ↗ |
-//    =C-----D↑
-inline void Motor::ADVANCE_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_FORWARD(pwm_A);
-    MOTORB_STOP(pwm_B);
-    MOTORC_STOP(pwm_C);
-    MOTORD_FORWARD(pwm_D);
-}
-//    ↑A-----B↓
-//     |  →  |
-//     |  →  |
-//    ↓C-----D↑
-inline void Motor::RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_FORWARD(pwm_A);
-    MOTORB_BACKOFF(pwm_B);
-    MOTORC_BACKOFF(pwm_C);
-    MOTORD_FORWARD(pwm_D);
-}
-//    =A-----B↓
-//     |   ↘ |
-//     | ↘   |
-//    ↓C-----D=
-inline void Motor::BACK_RIGHT(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_STOP(pwm_A);
-    MOTORB_BACKOFF(pwm_B);
-    MOTORC_BACKOFF(pwm_C);
-    MOTORD_STOP(pwm_D);
-}
-
-//    ↑A-----B↓
-//     | ↗ ↘ |
-//     | ↖ ↙ |
-//    ↑C-----D↓
-inline void Motor::ROTATE_CW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_FORWARD(pwm_A);
-    MOTORB_BACKOFF(pwm_B);
-    MOTORC_FORWARD(pwm_C);
-    MOTORD_BACKOFF(pwm_D);
-}
-
-//    ↓A-----B↑
-//     | ↙ ↖ |
-//     | ↘ ↗ |
-//    ↓C-----D↑
-inline void Motor::ROTATE_CCW(uint8_t pwm_A, uint8_t pwm_B, uint8_t pwm_C, uint8_t pwm_D)
-{
-    MOTORA_BACKOFF(pwm_A);
-    MOTORB_FORWARD(pwm_B);
-    MOTORC_BACKOFF(pwm_C);
-    MOTORD_FORWARD(pwm_D);
-}
-
 //    =A-----B=
 //     |  =  |
 //     |  =  |
@@ -443,6 +271,44 @@ inline void Motor::STOP()
     MOTORB_STOP(0);
     MOTORC_STOP(0);
     MOTORD_STOP(0);
+}
+
+// Speed is PWM value ranged from -255 to 255, -255 is full speed backward, 255 is full speed forward, 0 is stop.
+inline void Motor::_setDirection(uint8_t speed, uint8_t dir_pin_pos, uint8_t dir_pin_neg)
+{
+    if (speed > 0)
+    {
+        digitalWrite(dir_pin_pos, LOW);
+        digitalWrite(dir_pin_neg, HIGH);
+    }
+    else if (speed < 0)
+    {
+        digitalWrite(dir_pin_pos, HIGH);
+        digitalWrite(dir_pin_neg, LOW);
+    }
+    else
+    {
+        digitalWrite(dir_pin_pos, LOW);
+        digitalWrite(dir_pin_neg, LOW);
+    }
+}
+
+inline void Motor::setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D)
+{
+    analogWrite(PWMA, PWM_A);
+    analogWrite(PWMB, PWM_B);
+    analogWrite(PWMC, PWM_C);
+    analogWrite(PWMD, PWM_D);
+}
+
+inline void Motor::MOVE(uint8_t speed_A, uint8_t speed_B, uint8_t speed_C, uint8_t speed_D)
+{
+    _setDirection(speed_A, DIRA1, DIRA2);
+    _setDirection(speed_B, DIRB1, DIRB2);
+    _setDirection(speed_C, DIRC1, DIRC2);
+    _setDirection(speed_D, DIRD1, DIRD2);
+
+    setPWM(abs(speed_A), abs(speed_B), abs(speed_C), abs(speed_D));
 }
 
 #endif

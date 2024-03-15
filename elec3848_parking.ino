@@ -1,6 +1,7 @@
 #include "lib/CommunicationSerial.hpp"
 #include "lib/Display_SSD1306.hpp"
 #include "lib/Motor.hpp"
+#include "lib/MotorController.hpp"
 #include "lib/Sensor.hpp"
 #include "lib/State.h"
 #include <Arduino.h>
@@ -10,6 +11,7 @@ CommunicationSerial comm;
 Display_SSD1306 display;
 Sensor sensor;
 Motor motor;
+MotorController motor_controller(&motor);
 
 bool start_flag;
 
@@ -21,6 +23,7 @@ void setup()
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
+  motor.ADVANCE(255);
 }
 
 inline void Driver()
@@ -80,17 +83,20 @@ void loop()
   if (millis() > (send_time + 150))
   {
     send_time = millis();
-    comm.serialSensorDataTX(&sensor);
+    // comm.serialSensorDataTX(&sensor);
+    comm.wirelessSensorDataTX(&sensor);
     display.displaySensorData(&sensor);
   }
 
   if (millis() > (recv_time + 15))
   {
     recv_time = millis();
-    // sr_data = comm.serialControlMotor(&motor);
-    // wr_data = comm.wirelessControlMotor(&motor);
+    sr_data = comm.serialControlMotor(&motor_controller);
+    // wr_data = comm.wirelessControlMotor(&motor_controller);
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
-  Driver();
+  motor_controller.run();
+
+  // Driver();
 }

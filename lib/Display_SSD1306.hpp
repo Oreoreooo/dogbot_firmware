@@ -76,9 +76,6 @@ inline void Display_SSD1306::displaySensorData(Sensor *sensor)
     _ssd1306.print("DT: ");
     _ssd1306.print(sensor->getDistance(), 3);
     _ssd1306.print(" cm\n");
-    _ssd1306.print("AX: ");
-    _ssd1306.print(sensor->getAngleX(), 3);
-    _ssd1306.print(" deg\n");
     _ssd1306.print("AZ: ");
     _ssd1306.print(sensor->getAngleZ(), 3);
     _ssd1306.print(" deg\n");
@@ -88,10 +85,10 @@ inline void Display_SSD1306::displaySensorData(Sensor *sensor)
 inline void Display_SSD1306::displayMeasured(Sensor *sensor)
 {
     clear();
-    _ssd1306.print("DT: ");
+    _ssd1306.print("Distance: ");
     _ssd1306.print(sensor->getDistance(), 3);
-    _ssd1306.print(" cm\n");
-    _ssd1306.print("AW: ");
+    _ssd1306.print(" cm\n\n");
+    _ssd1306.print("Angle: ");
     _ssd1306.print(sensor->getAngleZ() + 90, 3);
     _ssd1306.print(" deg\n");
     _ssd1306.display();

@@ -2,7 +2,7 @@
 #define __COMMUNICATION_SERIAL_HPP__
 
 #include "Display_SSD1306.hpp"
-#include "Motor.hpp"
+#include "MotorController.hpp"
 #include "Sensor.hpp"
 #include <Arduino.h>
 
@@ -12,11 +12,11 @@
 class CommunicationSerial
 {
 public:
-    CommunicationSerial();
+    CommunicationSerial(void);
     void begin();
 
-    inline char serialControlMotor(Motor *motor);
-    inline char wirelessControlMotor(Motor *motor);
+    inline char serialControlMotor(MotorController *motor_controller);
+    inline char wirelessControlMotor(MotorController *motor_controller);
 
     inline void serialSensorDataTX(Sensor *sensor);
     inline void wirelessSensorDataTX(Sensor *sensor);
@@ -26,34 +26,34 @@ private:
     // inline String _commandToString(char data);
 };
 
-CommunicationSerial::CommunicationSerial() {}
+CommunicationSerial::CommunicationSerial(void) {}
 
 void CommunicationSerial::begin()
 {
     SR.begin(115200);
-    WR.begin(9600);
+    WR.begin(38400);
 }
 
-inline char CommunicationSerial::serialControlMotor(Motor *motor)
+inline char CommunicationSerial::serialControlMotor(MotorController *motor_controller)
 {
     static char buffer;
     if (SR.available())
     {
         buffer = SR.read();
         SR.flush();
-        motor->motorControl(buffer);
+        motor_controller->controlByCommand(buffer);
     }
     return buffer;
 }
 
-inline char CommunicationSerial::wirelessControlMotor(Motor *motor)
+inline char CommunicationSerial::wirelessControlMotor(MotorController *motor_controller)
 {
     static char buffer;
     if (WR.available())
     {
         buffer = WR.read();
         WR.flush();
-        motor->motorControl(buffer);
+        motor_controller->controlByCommand(buffer);
     }
     return buffer;
 }
