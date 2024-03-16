@@ -1,6 +1,5 @@
 #include "lib/CommunicationSerial.hpp"
 #include "lib/Display_SSD1306.hpp"
-#include "lib/Motor.hpp"
 #include "lib/MotorController.hpp"
 #include "lib/Sensor.hpp"
 #include "lib/State.h"
@@ -9,24 +8,23 @@
 ControlState state = IDLE;
 CommunicationSerial comm;
 Display_SSD1306 display;
+MotorController controller;
 Sensor sensor;
-Motor motor;
-MotorController motor_controller(&motor);
 
 bool start_flag;
 
 void setup()
 {
-  motor.STOP();
+  controller.STOP();
   display.begin();
   display.show("Calibrating...");
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
-  motor.MOVE(0, 0, 0, 127);
+  controller.ADVANCE(100);
 }
 
-inline void Driver()
+inline void parkingStateMachine()
 {
   switch (state)
   {
@@ -93,11 +91,11 @@ void loop()
   {
     recv_time = millis();
     // sr_data = comm.serialControlMotor(&motor_controller);
-    wr_data = comm.wirelessControlMotor(&motor_controller);
+    wr_data = comm.wirelessControlMotor(&controller);
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
-  motor_controller.run();
+  controller.performPID();
 
-  // Driver();
+  // parkingStateMachine();
 }

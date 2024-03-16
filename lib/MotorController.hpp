@@ -1,104 +1,393 @@
-#ifndef __MOTOR_ENCODER_HPP__
-#define __MOTOR_ENCODER_HPP__
-
+#ifndef __MOTOR_HPP__
+#define __MOTOR_HPP__
 #define ENCODER_OPTIMIZE_INTERRUPTS
 
 #include <Arduino.h>
 #include <Encoder.h>
-#include "Motor.hpp"
 
+// Define motor pins
+#define PWMA 12  // Motor A PWM
+#define DIRA1 34 // Motor A Direction +
+#define DIRA2 35 // Motor A Direction -
 #define ECDAA 18 // Motor A Encoder PIN A
 #define ECDAB 31 // Motor A Encoder PIN B
+
+#define PWMB 8   // Motor B PWM
+#define DIRB1 36 // Motor B Direction +
+#define DIRB2 37 // Motor B Direction -
 #define ECDBA 19 // Motor B Encoder PIN A
 #define ECDBB 38 // Motor B Encoder PIN B
+
+#define PWMC 6   // Motor C PWM
+#define DIRC1 43 // Motor C Direction +
+#define DIRC2 42 // Motor C Direction -
 #define ECDCA 3  // Motor C Encoder PIN A
 #define ECDCB 49 // Motor C Encoder PIN B
+
+#define PWMD 5   // Motor D PWM
+#define DIRD1 A5 // Motor D Direction +
+#define DIRD2 A4 // Motor D Direction -
 #define ECDDA 2  // Motor D Encoder PIN A
 #define ECDDB A1 // Motor D Encoder PIN B
 
-#define PWM_MAX 255
-#define PWM_MIN 0
+// PWM Definition
+#define MAX_PWM 255
+#define MIN_PWM 0
+
+// Direction Definition
+#define MOTOR_FORWARD 1
+#define MOTOR_BACKWARD -1
+#define MOTOR_STOP 0
+
+// Motor tuning factor, use measure() and record serial data as .csv to calculate average the value
+#define MOTOR_A_RPS 0.007922329950478557
+#define MOTOR_B_RPS 0.008408508633843398
+#define MOTOR_C_RPS 0.008045855179921036
+#define MOTOR_D_RPS 0.006797039616074927
 
 class MotorController
 {
 public:
-    MotorController(Motor *motor);
+    MotorController(void);
 
     inline void controlByCommand(char command);
-    inline void run();
+    inline void measureRotationPerSecond();
+
+    inline void performPID();
+    inline void resetPID();
+
+    inline void BACK(uint8_t MOTOR_PWM);
+    inline void ADVANCE(uint8_t MOTOR_PWM);
+    inline void ADVANCE_LEFT(uint8_t MOTOR_PWM);
+    inline void RIGHT(uint8_t MOTOR_PWM);
+    inline void BACK_LEFT(uint8_t MOTOR_PWM);
+    inline void ADVANCE_RIGHT(uint8_t MOTOR_PWM);
+    inline void LEFT(uint8_t MOTOR_PWM);
+    inline void BACK_RIGHT(uint8_t MOTOR_PWM);
+    inline void ROTATE_CW(uint8_t MOTOR_PWM);
+    inline void ROTATE_CCW(uint8_t MOTOR_PWM);
+    inline void STOP();
+
+    inline void MOVE(uint8_t MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D);
+    inline void MOVE(int PWM_A, int PWM_B, int PWM_C, int PWM_D);
 
 private:
-    Motor *_motor;
+    inline int _setDirection(int direction, uint8_t dir_pin_positive, uint8_t dir_pin_negative);
+    inline void _setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D);
+    inline void _writePWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D);
+    inline void _readECDs();
+    inline void _computePID();
+    inline void _computeEMA();
+
+    int _A_DIRECTION;
+    int _B_DIRECTION;
+    int _C_DIRECTION;
+    int _D_DIRECTION;
 
     Encoder _ECDA{ECDAA, ECDAB};
     Encoder _ECDB{ECDBA, ECDBB};
     Encoder _ECDC{ECDCA, ECDCB};
     Encoder _ECDD{ECDDA, ECDDB};
 
-    double _kP = 1;
-    double _kI = 0;
-    double _kD = 0;
+    int32_t _ECD_A;
+    int32_t _ECD_B;
+    int32_t _ECD_C;
+    int32_t _ECD_D;
 
-    double _lastStep = 0;
-    double _timeStep = 0;
+    uint8_t _PWM_A;
+    uint8_t _PWM_B;
+    uint8_t _PWM_C;
+    uint8_t _PWM_D;
 
-    double _ECD_A;
-    double _ECD_B;
-    double _ECD_C;
-    double _ECD_D;
+    uint8_t _PWM_A_target;
+    uint8_t _PWM_B_target;
+    uint8_t _PWM_C_target;
+    uint8_t _PWM_D_target;
 
-    double _PWM_A;
-    double _PWM_B;
-    double _PWM_C;
-    double _PWM_D;
+    unsigned long _prev_time = 0;
+    const unsigned long _time_step = 10;
 
-    double _integral_A;
-    double _integral_B;
-    double _integral_C;
-    double _integral_D;
+    float _kP = 0.20;
+    float _kI = 0.000005;
 
-    double _prev_error_A;
-    double _prev_error_B;
-    double _prev_error_C;
-    double _prev_error_D;
+    bool boost_done = false;
 
-    inline void _update();
+    int32_t _prev_error_A = 0;
+    int32_t _prev_error_B = 0;
+    int32_t _prev_error_C = 0;
+
+    int32_t _integral_A = 0;
+    int32_t _integral_B = 0;
+    int32_t _integral_C = 0;
+
+    const float _MOTOR_MIN_RPS = min(min(MOTOR_A_RPS, MOTOR_B_RPS), min(MOTOR_C_RPS, MOTOR_D_RPS));
+    const float _MOTOR_A_BALANCE_FACTOR = MOTOR_A_RPS / _MOTOR_MIN_RPS;
+    const float _MOTOR_B_BALANCE_FACTOR = MOTOR_B_RPS / _MOTOR_MIN_RPS;
+    const float _MOTOR_C_BALANCE_FACTOR = MOTOR_C_RPS / _MOTOR_MIN_RPS;
+    const float _MOTOR_D_BALANCE_FACTOR = MOTOR_D_RPS / _MOTOR_MIN_RPS;
 };
 
-MotorController::MotorController(Motor *motor) : _motor(motor)
+MotorController::MotorController(void){};
+
+//    ↓A-----B↓
+//     |  |  |
+//     |  ↓  |
+//    ↓C-----D↓
+inline void MotorController::BACK(uint8_t MOTOR_PWM)
 {
-    _PWM_D = 127.0;
-    _timeStep = 10;
+    MOVE(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD);
+    resetPID();
 }
 
-inline void MotorController::run()
+//    ↑A-----B↑
+//     |  ↑  |
+//     |  |  |
+//    ↑C-----D↑
+inline void MotorController::ADVANCE(uint8_t MOTOR_PWM)
 {
-    unsigned long _dT = millis() - _lastStep;
-    if (_dT >= _timeStep)
+    MOVE(MOTOR_PWM, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD);
+    resetPID();
+}
+//    =A-----B↑
+//     |   ↖ |
+//     | ↖   |
+//    ↑C-----D=
+inline void MotorController::ADVANCE_LEFT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_STOP, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_STOP);
+    resetPID();
+}
+
+//    ↓A-----B↑
+//     |  ←  |
+//     |  ←  |
+//    ↑C-----D↓
+inline void MotorController::LEFT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
+    resetPID();
+}
+//    ↓A-----B=
+//     | ↙   |
+//     |   ↙ |
+//    =C-----D↓
+inline void MotorController::BACK_LEFT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_BACKWARD);
+    resetPID();
+}
+//    ↑A-----B=
+//     | ↗   |
+//     |   ↗ |
+//    =C-----D↑
+inline void MotorController::ADVANCE_RIGHT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_FORWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_FORWARD);
+    resetPID();
+}
+//    ↑A-----B↓
+//     |  →  |
+//     |  →  |
+//    ↓C-----D↑
+inline void MotorController::RIGHT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
+    resetPID();
+}
+//    =A-----B↓
+//     |   ↘ |
+//     | ↘   |
+//    ↓C-----D=
+inline void MotorController::BACK_RIGHT(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_STOP, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_STOP);
+    resetPID();
+}
+
+//    ↑A-----B↓
+//     | ↗ ↘ |
+//     | ↖ ↙ |
+//    ↑C-----D↓
+inline void MotorController::ROTATE_CW(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
+    resetPID();
+}
+
+//    ↓A-----B↑
+//     | ↙ ↖ |
+//     | ↘ ↗ |
+//    ↓C-----D↑
+inline void MotorController::ROTATE_CCW(uint8_t MOTOR_PWM)
+{
+    MOVE(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
+    resetPID();
+}
+
+//    =A-----B=
+//     |  =  |
+//     |  =  |
+//    =C-----D=
+inline void MotorController::STOP()
+{
+    MOVE(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
+    resetPID();
+    boost_done = false;
+}
+
+inline int MotorController::_setDirection(int direction, uint8_t dir_pin_positive, uint8_t dir_pin_negative)
+{
+    if (direction > 0)
     {
-        _lastStep = millis();
-        _update();
+        digitalWrite(dir_pin_positive, LOW);
+        digitalWrite(dir_pin_negative, HIGH);
+        return MOTOR_FORWARD;
+    }
+    else if (direction < 0)
+    {
+        digitalWrite(dir_pin_positive, HIGH);
+        digitalWrite(dir_pin_negative, LOW);
+        return MOTOR_BACKWARD;
+    }
+    else
+    {
+        digitalWrite(dir_pin_positive, LOW);
+        digitalWrite(dir_pin_negative, LOW);
+        return MOTOR_STOP;
+    }
+}
 
-        double _error_A = _ECD_D - _ECD_A;
-        double _error_B = _ECD_D - _ECD_B;
-        double _error_C = _ECD_D - _ECD_C;
+inline void MotorController::_setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D)
+{
+    if (!boost_done)
+    {
+        _PWM_A_target = PWM_A;
+        _PWM_B_target = PWM_B;
+        _PWM_C_target = PWM_C;
+        _PWM_D_target = PWM_D;
+    }
+    else
+    {
+        _writePWM(PWM_A, PWM_B, PWM_C, PWM_D);
+    }
+}
 
-        _integral_A += (_error_A + _prev_error_A) / 2 * _dT;
-        _integral_B += (_error_B + _prev_error_B) / 2 * _dT;
-        _integral_C += (_error_C + _prev_error_C) / 2 * _dT;
+inline void MotorController::_writePWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D)
+{
+    _PWM_A = PWM_A;
+    _PWM_B = PWM_B;
+    _PWM_C = PWM_C;
+    _PWM_D = PWM_D;
+    analogWrite(PWMA, PWM_A);
+    analogWrite(PWMB, PWM_B);
+    analogWrite(PWMC, PWM_C);
+    analogWrite(PWMD, PWM_D);
+}
 
-        double _derivative_A = (_error_A - _prev_error_A) / _dT;
-        double _derivative_B = (_error_B - _prev_error_B) / _dT;
-        double _derivative_C = (_error_C - _prev_error_C) / _dT;
+inline void MotorController::MOVE(uint8_t MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D)
+{
+    _A_DIRECTION = _setDirection(DIR_A, DIRA1, DIRA2);
+    _B_DIRECTION = _setDirection(DIR_B, DIRB1, DIRB2);
+    _C_DIRECTION = _setDirection(DIR_C, DIRC1, DIRC2);
+    _D_DIRECTION = _setDirection(DIR_D, DIRD1, DIRD2);
+
+    _setPWM(constrain(MOTOR_PWM / _MOTOR_A_BALANCE_FACTOR, MIN_PWM, MAX_PWM), constrain(MOTOR_PWM / _MOTOR_B_BALANCE_FACTOR, MIN_PWM, MAX_PWM), constrain(MOTOR_PWM / _MOTOR_C_BALANCE_FACTOR, MIN_PWM, MAX_PWM), constrain(MOTOR_PWM / _MOTOR_D_BALANCE_FACTOR, MIN_PWM, MAX_PWM));
+}
+
+inline void MotorController::MOVE(int PWM_A, int PWM_B, int PWM_C, int PWM_D)
+{
+    _A_DIRECTION = _setDirection(PWM_A, DIRA1, DIRA2);
+    _B_DIRECTION = _setDirection(PWM_B, DIRB1, DIRB2);
+    _C_DIRECTION = _setDirection(PWM_C, DIRC1, DIRC2);
+    _D_DIRECTION = _setDirection(PWM_D, DIRD1, DIRD2);
+
+    _setPWM(constrain(abs(PWM_A), MIN_PWM, MAX_PWM), constrain(abs(PWM_B), MIN_PWM, MAX_PWM), constrain(abs(PWM_C), MIN_PWM, MAX_PWM), constrain(abs(PWM_D), MIN_PWM, MAX_PWM));
+}
+
+inline void MotorController::resetPID()
+{
+    _integral_A = 0;
+    _integral_B = 0;
+    _integral_C = 0;
+    _prev_error_A = 0;
+    _prev_error_B = 0;
+    _prev_error_C = 0;
+}
+
+inline void MotorController::_computePID()
+{
+    _readECDs();
+    if (_D_DIRECTION != MOTOR_STOP)
+    {
+        int32_t _error_A = _ECD_D - _ECD_A;
+        int32_t _error_B = _ECD_D - _ECD_B;
+        int32_t _error_C = _ECD_D - _ECD_C;
+
+        _integral_A += (_error_A + _prev_error_A);
+        _integral_B += (_error_B + _prev_error_B);
+        _integral_C += (_error_C + _prev_error_C);
+
+        // int32_t _derivative_A = (_error_A - _prev_error_A);
+        // int32_t _derivative_B = (_error_B - _prev_error_B);
+        // int32_t _derivative_C = (_error_C - _prev_error_C);
 
         _prev_error_A = _error_A;
         _prev_error_B = _error_B;
         _prev_error_C = _error_C;
 
-        _PWM_A = constrain(_kP * _error_A + _kI * _integral_A + _kD * _derivative_A, PWM_MIN, PWM_MAX);
-        _PWM_B = constrain(_kP * _error_B + _kI * _integral_B + _kD * _derivative_B, PWM_MIN, PWM_MAX);
-        _PWM_C = constrain(_kP * _error_C + _kI * _integral_C + _kD * _derivative_C, PWM_MIN, PWM_MAX);
+        _PWM_A = constrain(_kP * _error_A + _kI * _integral_A, MIN_PWM, MAX_PWM);
+        _PWM_B = constrain(_kP * _error_B + _kI * _integral_B, MIN_PWM, MAX_PWM);
+        _PWM_C = constrain(_kP * _error_C + _kI * _integral_C, MIN_PWM, MAX_PWM);
+    }
+    else
+    {
+        int32_t _error_A = _ECD_C - _ECD_A;
+        int32_t _error_B = _ECD_C - _ECD_B;
 
+        _integral_A += (_error_A + _prev_error_A);
+        _integral_B += (_error_B + _prev_error_B);
+
+        // int32_t _derivative_A = (_error_A - _prev_error_A);
+        // int32_t _derivative_B = (_error_B - _prev_error_B);
+
+        _prev_error_A = _error_A;
+        _prev_error_B = _error_B;
+
+        _PWM_A = constrain(_kP * _error_A + _kI * _integral_A, MIN_PWM, MAX_PWM);
+        _PWM_B = constrain(_kP * _error_B + _kI * _integral_B, MIN_PWM, MAX_PWM);
+    }
+}
+
+inline void MotorController::_computeEMA()
+{
+    _PWM_A = _PWM_A_target * 0.1 + _PWM_A * 0.9;
+    _PWM_B = _PWM_B_target * 0.1 + _PWM_B * 0.9;
+    _PWM_C = _PWM_C_target * 0.1 + _PWM_C * 0.9;
+    _PWM_D = _PWM_D_target * 0.1 + _PWM_D * 0.9;
+
+    if (abs(_PWM_A - _PWM_A_target) <= 5 && abs(_PWM_B - _PWM_B_target) <= 5 && abs(_PWM_C - _PWM_C_target) <= 5 && abs(_PWM_D - _PWM_D_target) <= 5)
+    {
+        _PWM_A = _PWM_A_target;
+        _PWM_B = _PWM_B_target;
+        _PWM_C = _PWM_C_target;
+        _PWM_D = _PWM_D_target;
+        boost_done = true;
+    }
+}
+
+// PID Control Based on Encoder
+inline void MotorController::performPID()
+{
+    unsigned long _interval = millis() - _prev_time;
+
+    if (_interval >= _time_step)
+    {
+        boost_done ? _computePID() : _computeEMA();
+        _prev_time = millis();
+        analogWrite(PWMA, _PWM_A);
+        analogWrite(PWMB, _PWM_B);
+        analogWrite(PWMC, _PWM_C);
+        analogWrite(PWMD, _PWM_D);
         Serial.print(_PWM_A);
         Serial.print(",");
         Serial.print(_PWM_B);
@@ -106,18 +395,10 @@ inline void MotorController::run()
         Serial.print(_PWM_C);
         Serial.print(",");
         Serial.println(_PWM_D);
-
-        Serial3.print(_kP);
-        Serial3.print(",");
-        Serial3.print(_kI);
-        Serial3.print(",");
-        Serial3.println(_kD);
-
-        _motor->MOVE(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
     }
 }
 
-inline void MotorController::_update()
+inline void MotorController::_readECDs()
 {
     _ECD_A = -_ECDA.read();
     _ECD_B = _ECDB.read();
@@ -127,34 +408,95 @@ inline void MotorController::_update()
 
 inline void MotorController::controlByCommand(char command)
 {
+    static uint8_t _motor_pwm = 50;
     switch (command)
     {
-    case 'Q':
-        _kP = _kP + 0.01;
-    case 'W':
-        _kI = _kI + 0.01;
-    case 'E':
-        _kD = _kD + 0.01;
     case 'A':
-        _kP = _kP - 0.01;
-    case 'S':
-        _kI = _kI - 0.01;
-    case 'D':
-        _kD = _kD - 0.01;
-    case '+':
-        _PWM_D = constrain(_PWM_D + 5, 0, 255);
+        ADVANCE(_motor_pwm);
         break;
-    case '-':
-        _PWM_D = constrain(_PWM_D - 5, 0, 255);
+    case 'B':
+        ADVANCE_RIGHT(_motor_pwm);
+    case 'b':
+        RIGHT(_motor_pwm);
+        break;
+    case 'C':
+        ROTATE_CW(_motor_pwm);
+        break;
+    case 'D':
+        BACK_RIGHT(_motor_pwm);
+        break;
+    case 'd':
+        LEFT(_motor_pwm);
+        break;
+    case 'E':
+        BACK(_motor_pwm);
+        break;
+    case 'F':
+        BACK_LEFT(_motor_pwm);
+        break;
+    case 'G':
+        ROTATE_CCW(_motor_pwm);
+        break;
+    case 'H':
+        ADVANCE_LEFT(_motor_pwm);
+        break;
+    case 'L':
+        _motor_pwm = constrain(_motor_pwm + 5, MAX_PWM, MIN_PWM);
+        break;
+    case 'M':
+        _motor_pwm = constrain(_motor_pwm - 5, MAX_PWM, MIN_PWM);
         break;
     case 'Z':
-        _motor->STOP();
+        STOP();
         break;
     case 'z':
-        _motor->STOP();
+        STOP();
         break;
     default:
         break;
+    }
+}
+
+// WARNING: Leave the wheel in the air before run this function.
+inline void MotorController::measureRotationPerSecond()
+{
+    MOVE(255, 255, 255, 255, true);
+    unsigned long start_time = micros();
+    unsigned long curr_time = start_time;
+    unsigned long prev_time = start_time;
+
+    while (curr_time - start_time < 500000)
+    {
+        curr_time = micros();
+    }
+    while (curr_time - start_time < 30500000)
+    {
+        curr_time = micros();
+        unsigned long interval = curr_time - prev_time;
+        if (interval >= 9000)
+        {
+            prev_time = curr_time;
+
+            int32_t prev_ECD_A = _ECD_A;
+            int32_t prev_ECD_B = _ECD_B;
+            int32_t prev_ECD_C = _ECD_C;
+            int32_t prev_ECD_D = _ECD_D;
+            _readECDs();
+            int32_t sample_ECD_A = _ECD_A - prev_ECD_A;
+            int32_t sample_ECD_B = _ECD_B - prev_ECD_B;
+            int32_t sample_ECD_C = _ECD_C - prev_ECD_C;
+            int32_t sample_ECD_D = _ECD_D - prev_ECD_D;
+
+            Serial.print(interval);
+            Serial.print(",");
+            Serial.print(sample_ECD_A);
+            Serial.print(",");
+            Serial.print(sample_ECD_B);
+            Serial.print(",");
+            Serial.print(sample_ECD_C);
+            Serial.print(",");
+            Serial.println(sample_ECD_D);
+        }
     }
 }
 

@@ -23,7 +23,7 @@ public:
   inline int getSonarL();
   inline int getSonarR();
 
-  inline double getDistance();
+  inline float getDistance();
 
   inline float getAngleX();
   inline float getAngleY();
@@ -118,7 +118,7 @@ inline int Sensor::getSonarR()
 }
 
 // Distance is updated in every 65ms
-inline double Sensor::getDistance()
+inline float Sensor::getDistance()
 {
   return _pulse_duration * 0.01715;
 }
