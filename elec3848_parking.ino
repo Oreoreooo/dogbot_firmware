@@ -15,16 +15,18 @@ bool start_flag;
 
 void setup()
 {
+  controller.begin();
   controller.STOP();
   display.begin();
   display.show("Calibrating...");
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
-  controller.ADVANCE(100);
+  controller.ADVANCE(128);
+  // controller.measure();
 }
 
-inline void parkingStateMachine()
+void parkingStateMachine()
 {
   switch (state)
   {
@@ -90,12 +92,13 @@ void loop()
   if (millis() > (recv_time + 15))
   {
     recv_time = millis();
-    // sr_data = comm.serialControlMotor(&motor_controller);
-    wr_data = comm.wirelessControlMotor(&controller);
+    // sr_data = comm.serialControlMotor(&controller);
+    // wr_data = comm.wirelessControlMotor(&controller);
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
-  controller.performPID();
+  controller.perform();
 
   // parkingStateMachine();
+
 }

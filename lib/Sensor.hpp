@@ -6,136 +6,136 @@
 
 #define PTR_L A0 // Phtotransistor L PIN
 #define PTR_R A2 // Phtotransistor R PIN
-
-#define LSR 48 // LaserPING PIN
+#define LSR 48   // LaserPING PIN
 
 class Sensor
 {
 public:
-  Sensor(void);
+    Sensor(void);
 
-  void begin();
-  inline void update();
+    void begin();
+    void update();
 
-  inline int getLightL();
-  inline int getLightR();
+    int getLightLeft();
+    int getLightRight();
 
-  inline int getSonarL();
-  inline int getSonarR();
+    int getSonarLeft();
+    int getSonarRight();
 
-  inline float getDistance();
+    float getDistance();
 
-  inline float getAngleX();
-  inline float getAngleY();
-  inline float getAngleZ();
+    float getAngleX();
+    float getAngleY();
+    float getAngleZ();
 
 private:
-  MPU6050 _mpu;
-  inline void _updateDistance();
-  unsigned long _pulse_duration;
-  int _light_l;
-  int _light_r;
-  int _sonar_l;
-  int _sonar_r;
+    MPU6050 _mpu;
+    void _updatePulse();
+    unsigned long _pulse_duration;
+    int _light_L;
+    int _light_R;
+
+    int _sonar_L;
+    int _sonar_R;
 };
 
-Sensor::Sensor(void) : _mpu(MPU6050(Wire)), _pulse_duration(0), _light_l(0), _light_r(0), _sonar_l(0), _sonar_r(0)
-{
-  pinMode(PTR_L, INPUT);
-  pinMode(PTR_R, INPUT);
-}
+Sensor::Sensor(void) : _mpu(MPU6050(Wire)) {}
 
 void Sensor::begin()
 {
-  _mpu.begin();
-  delay(500);
-  _mpu.calcGyroOffsets();
-  _mpu.setFilterGyroCoef(0.965);
+    pinMode(PTR_L, INPUT);
+    pinMode(PTR_R, INPUT);
+    _mpu.begin();
+    delay(500);
+    _mpu.calcGyroOffsets();
+    _mpu.setFilterGyroCoef(0.965);
 }
 
-inline void Sensor::_updateDistance()
+void Sensor::_updatePulse()
 {
-  static unsigned long pulse_start_time;
-  static unsigned long measure_start_time;
-  static bool measure_start = false;
-  static bool measure_done = false;
+    static unsigned long pulse_start_time;
+    static unsigned long measure_start_time;
+    static bool measure_start = false;
+    static bool measure_done = false;
 
-  if (millis() > (measure_start_time + 65))
-  {
-    measure_start_time = millis();
-    measure_start = true;
-  }
+    if (millis() > (measure_start_time + 65))
+    {
+        measure_start_time = millis();
+        measure_start = true;
+    }
 
-  if (measure_start && measure_done)
-  {
-    measure_done = false;
-    pulse_start_time = micros();
-    digitalWrite(LSR, LOW);
-  }
-  
-  if (micros() > pulse_start_time + 8)
-  {
-    digitalWrite(LSR, HIGH);
-  }
+    if (measure_start && measure_done)
+    {
+        measure_done = false;
+        pulse_start_time = millis();
+        digitalWrite(LSR, LOW);
+    }
 
+    if (millis() > pulse_start_time + 1)
+    {
+        digitalWrite(LSR, HIGH);
+    }
 
-  if (micros() > pulse_start_time + 16)
-  {
-    pinMode(LSR, INPUT);
-    _pulse_duration = 0.9 * _pulse_duration + 0.1 * pulseInLong(LSR, HIGH, 12000);
-    pinMode(LSR, OUTPUT);
-    measure_done = true;
-    measure_start = false;
-  }
+    if (millis() > pulse_start_time + 3)
+    {
+        digitalWrite(LSR, LOW);
+        pinMode(LSR, INPUT);
+        _pulse_duration = 0.9 * _pulse_duration + 0.1 * pulseInLong(LSR, HIGH, 12000);
+        pinMode(LSR, OUTPUT);
+        measure_done = true;
+        measure_start = false;
+    }
 }
 
-inline void Sensor::update()
+void Sensor::update()
 {
-  _mpu.update();
-  _light_l = 0.9 * _light_l + 0.1 * analogRead(PTR_L);
-  _light_r = 0.9 * _light_r + 0.1 * analogRead(PTR_R);
-  _updateDistance();
+    _mpu.update();
+
+    _light_L = 0.9 * _light_L + 0.1 * analogRead(PTR_L);
+    _light_R = 0.9 * _light_R + 0.1 * analogRead(PTR_R);
+
+    _updatePulse();
 }
 
-inline int Sensor::getLightL()
+int Sensor::getLightLeft()
 {
-  return _light_l;
+    return _light_L;
 }
 
-inline int Sensor::getLightR()
+int Sensor::getLightRight()
 {
-  return _light_r;
+    return _light_R;
 }
 
-inline int Sensor::getSonarL()
+int Sensor::getSonarLeft()
 {
-  return _sonar_l;
+    return _sonar_L;
 }
 
-inline int Sensor::getSonarR()
+int Sensor::getSonarRight()
 {
-  return _sonar_r;
+    return _sonar_R;
 }
 
 // Distance is updated in every 65ms
-inline float Sensor::getDistance()
+float Sensor::getDistance()
 {
-  return _pulse_duration * 0.01715;
+    return _pulse_duration * 0.01715;
 }
 
-inline float Sensor::getAngleX()
+float Sensor::getAngleX()
 {
-  return _mpu.getAngleX();
+    return _mpu.getAngleX();
 }
 
 float Sensor::getAngleY()
 {
-  return _mpu.getAngleY();
+    return _mpu.getAngleY();
 }
 
-inline float Sensor::getAngleZ()
+float Sensor::getAngleZ()
 {
-  return _mpu.getAngleZ();
+    return _mpu.getAngleZ();
 }
 
 #endif
