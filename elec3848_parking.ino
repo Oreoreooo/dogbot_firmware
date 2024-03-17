@@ -12,12 +12,12 @@ MotorController controller;
 MPU6050 mpu(Wire);
 Sensor sensor;
 
-bool parking_start;
-unsigned long wait_time;
-unsigned long recv_time;
-unsigned long send_time;
-char sr_data;
-char wr_data;
+bool parking_start = false;
+unsigned long wait_time = 0;
+unsigned long recv_time = 0;
+unsigned long send_time = 0;
+char sr_data = '\0';
+char wr_data = '\0';
 
 void setup()
 {
@@ -55,11 +55,11 @@ inline void parkingStateMachine()
     {
       controller.STOP();
       delay(2000);
-      state = MOVE;
+      state = MOVE_TO_25;
     }
     break;
 
-  case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
+  case MOVE_TO_25: // Move to a location of 25cm from the wall, and wait for 2 sec.
     if (move(25))
     {
       controller.STOP();
@@ -111,9 +111,6 @@ inline void parkingStateMachine()
       delay(2000);
       state = IDLE;
     }
-    break;
-
-  default:
     break;
   }
 }

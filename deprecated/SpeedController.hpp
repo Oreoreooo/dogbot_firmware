@@ -10,16 +10,16 @@
 
 // motor tuning factor, use measure() to record serial data as .csv to calculate average the value
 const float TIME_INTERVAL = 10.00214;
-const float MOTOR_RPPWM_A = 0.299069;
-const float MOTOR_RPPWM_B = 0.317692;
-const float MOTOR_RPPWM_C = 0.303293;
-const float MOTOR_RPPWM_D = 0.251549;
+const float MOTOR_TURN_A = 0.299069;
+const float MOTOR_TURN_B = 0.317692;
+const float MOTOR_TURN_C = 0.303293;
+const float MOTOR_TURN_D = 0.251549;
 
-const float MIN_MOTOR_RPPWM = min(min(MOTOR_RPPWM_A, MOTOR_RPPWM_B), min(MOTOR_RPPWM_C, MOTOR_RPPWM_D));
-const float BALANCE_FACTOR_A = MOTOR_RPPWM_A / MIN_MOTOR_RPPWM;
-const float BALANCE_FACTOR_B = MOTOR_RPPWM_B / MIN_MOTOR_RPPWM;
-const float MBALANCE_FACTOR_C = MOTOR_RPPWM_C / MIN_MOTOR_RPPWM;
-const float BALANCE_FACTOR_D = MOTOR_RPPWM_D / MIN_MOTOR_RPPWM;
+const float MIN_MOTOR_TURN = min(min(MOTOR_TURN_A, MOTOR_TURN_B), min(MOTOR_TURN_C, MOTOR_TURN_D));
+const float BALANCE_FACTOR_A = MOTOR_TURN_A / MIN_MOTOR_TURN;
+const float BALANCE_FACTOR_B = MOTOR_TURN_B / MIN_MOTOR_TURN;
+const float MBALANCE_FACTOR_C = MOTOR_TURN_C / MIN_MOTOR_TURN;
+const float BALANCE_FACTOR_D = MOTOR_TURN_D / MIN_MOTOR_TURN;
 
 // PWM Definition
 #define MAX_PWM 200

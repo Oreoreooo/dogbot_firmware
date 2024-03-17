@@ -138,7 +138,7 @@ void SpeedControllerPI::setPWM(int MOTOR_PWM) {
 
     if (_control_on)
     {
-        _set_point = (float)MOTOR_PWM * MIN_MOTOR_RPPWM;
+        _set_point = (float)MOTOR_PWM * MIN_MOTOR_TURN;
     }
     else
     {
@@ -147,32 +147,6 @@ void SpeedControllerPI::setPWM(int MOTOR_PWM) {
 }
 
 // WARNING: leaving the wheels in the air before run this function.
-void SpeedControllerPI::measure() {
-    off();
-    SpeedController::setPWM(255);
-    unsigned long curr_time;
-    unsigned long prev_time;
-    unsigned long interval;
-    while (true)
-    {
-        curr_time = micros();
-        interval = curr_time - prev_time;
-        if (interval >= 10000)
-        {
-            prev_time = curr_time;
-            _read();
-            Serial.print(interval);
-            Serial.print(",");
-            Serial.print(_MTRA.ecd_diff);
-            Serial.print(",");
-            Serial.print(_MTRB.ecd_diff);
-            Serial.print(",");
-            Serial.print(_MTRC.ecd_diff);
-            Serial.print(",");
-            Serial.println(_MTRD.ecd_diff);
-        }
-    }
-    on();
-}
+
 
 #endif
