@@ -153,7 +153,7 @@ void SpeedControllerPID::setPWM(int MOTOR_PWM)
 // WARNING: leaving the wheels in the air before run this function.
 void SpeedControllerPID::measure()
 {
-    _off();
+    off();
     setPWM(255);
     unsigned long curr_time;
     unsigned long prev_time;
@@ -177,6 +177,7 @@ void SpeedControllerPID::measure()
             Serial.println(_MTRD.ECD_diff);
         }
     }
+    on();
 }
 
 #endif

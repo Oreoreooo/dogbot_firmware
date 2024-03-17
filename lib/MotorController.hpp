@@ -43,6 +43,9 @@ public:
     void ROTATE_CCW(uint8_t MOTOR_PWM);
     void STOP();
 
+    void onSpeedControl();
+    void offSpeedControl();
+
 private:
     SpeedControllerPID speed_controller;
 
@@ -98,7 +101,7 @@ void MotorController::move(uint8_t MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, i
     _C_DIRECTION = _setDirection(DIR_C, DIRC1, DIRC2);
     _D_DIRECTION = _setDirection(DIR_D, DIRD1, DIRD2);
 
-    speed_controller.setPWM(MOTOR_PWM, true);
+    speed_controller.setPWM(MOTOR_PWM);
 }
 
 String MotorController::command(char command)
@@ -106,23 +109,23 @@ String MotorController::command(char command)
     static uint8_t _motor_pwm = 125;
     switch (command)
     {
-    case 'A':   // OK
+    case 'A': // OK
         ADVANCE(_motor_pwm);
         return "Forward";
-    case 'B':   // OK
+    case 'B': // OK
         ADVANCE_RIGHT(_motor_pwm);
         return "Forward Right";
-    case 'b':   // -10 degree
+    case 'b': // -10 degree
         RIGHT(_motor_pwm);
         return "Right";
         break;
-    case 'C':  // SOMEWHAT OK
+    case 'C': // SOMEWHAT OK
         ROTATE_CW(_motor_pwm);
         return "Rotate Right";
-    case 'D':   // OK
+    case 'D': // OK
         BACK_RIGHT(_motor_pwm);
         return "Backward Right";
-    case 'd':   // 
+    case 'd': //
         LEFT(_motor_pwm);
         return "Left";
     case 'E':
@@ -161,6 +164,16 @@ void MotorController::measure()
     _setDirection(MOTOR_FORWARD, DIRC1, DIRC2);
     _setDirection(MOTOR_FORWARD, DIRD1, DIRD2);
     speed_controller.measure();
+}
+
+void MotorController::onSpeedControl()
+{
+    speed_controller.on();
+}
+
+void MotorController::offSpeedControl()
+{
+    speed_controller.off();
 }
 
 void MotorController::perform()

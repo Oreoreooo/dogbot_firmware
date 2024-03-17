@@ -22,7 +22,6 @@ void setup()
   sensor.begin();
   display.show("Alt-F4!");
   comm.begin();
-  controller.ADVANCE(128);
   // controller.measure();
 }
 
