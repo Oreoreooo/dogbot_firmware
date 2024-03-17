@@ -1,8 +1,7 @@
 #ifndef _STATE_H_
 #define _STATE_H_
 
-enum ControlState
-{
+enum ControlState {
     IDLE,
     MOVE,
     TURN_CW_90,

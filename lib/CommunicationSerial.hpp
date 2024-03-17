@@ -18,8 +18,8 @@ public:
     char serialControlMotor(MotorController *motor_controller);
     char wirelessControlMotor(MotorController *motor_controller);
 
-    inline void serialSensorDataTX(Sensor *sensor);
-    inline void wirelessSensorDataTX(Sensor *sensor);
+    inline void serialSensorDataTX(Sensor *sensor, MPU6050 *mpu);
+    inline void wirelessSensorDataTX(Sensor *sensor, MPU6050 *mpu);
 };
 
 CommunicationSerial::CommunicationSerial(void) {}
@@ -32,29 +32,30 @@ void CommunicationSerial::begin()
 
 char CommunicationSerial::serialControlMotor(MotorController *motor_controller)
 {
-    static char buffer;
     if (SR.available())
     {
+        char buffer;
         buffer = SR.read();
         SR.flush();
         motor_controller->command(buffer);
+        return buffer;
     }
-    return buffer;
+    return '\0';
 }
 
 char CommunicationSerial::wirelessControlMotor(MotorController *motor_controller)
 {
-    static char buffer;
     if (WR.available())
     {
-        buffer = WR.read();
+        char buffer = WR.read();
         WR.flush();
         motor_controller->command(buffer);
+        return buffer;
     }
-    return buffer;
+    return '\0';
 }
 
-void CommunicationSerial::serialSensorDataTX(Sensor *sensor)
+void CommunicationSerial::serialSensorDataTX(Sensor *sensor, MPU6050 *mpu)
 {
     SR.print("LL=");
     SR.print(sensor->getLightLeft());
@@ -62,14 +63,12 @@ void CommunicationSerial::serialSensorDataTX(Sensor *sensor)
     SR.print(sensor->getLightRight());
     SR.print(",DT=");
     SR.print(sensor->getDistance());
-    SR.print(",AX=");
-    SR.print(sensor->getAngleX());
     SR.print(",AZ=");
-    SR.print(sensor->getAngleZ());
+    SR.print(mpu->getAngleZ());
     SR.println("");
 }
 
-void CommunicationSerial::wirelessSensorDataTX(Sensor *sensor)
+void CommunicationSerial::wirelessSensorDataTX(Sensor *sensor, MPU6050 *mpu)
 {
     WR.print("LL=");
     WR.print(sensor->getLightLeft());
@@ -77,10 +76,8 @@ void CommunicationSerial::wirelessSensorDataTX(Sensor *sensor)
     WR.print(sensor->getLightRight());
     WR.print(",DT=");
     WR.print(sensor->getDistance());
-    WR.print(",AX=");
-    WR.print(sensor->getAngleX());
     WR.print(",AZ=");
-    WR.print(sensor->getAngleZ());
+    WR.print(mpu->getAngleZ());
     WR.println("");
 }
 

@@ -2,7 +2,7 @@
 #define __MOTOR_HPP__
 
 #include <Arduino.h>
-#include "SpeedControllerPID.hpp"
+#include <MPU6050_light.h>
 
 // Define motor pins
 #define DIRA1 34 // Motor A Direction +
@@ -13,11 +13,37 @@
 #define DIRC2 42 // Motor C Direction -
 #define DIRD1 A5 // Motor D Direction +
 #define DIRD2 A4 // Motor D Direction -
+#define PWMA 12  // Motor A PWM
+#define PWMB 8   // Motor B PWM
+#define PWMC 6   // Motor C PWM
+#define PWMD 5   // Motor D PWM
 
 // Direction Definition
 #define MOTOR_FORWARD 1
 #define MOTOR_BACKWARD -1
 #define MOTOR_STOP 0
+
+// motor tuning factor, use measure() to record serial data as .csv to calculate average the value
+const float MOTOR_RPPWM_A = 7.928667;
+const float MOTOR_RPPWM_B = 8.404883;
+const float MOTOR_RPPWM_C = 8.049408;
+const float MOTOR_RPPWM_D = 6.803542;
+const float MIN_MOTOR_RPPWM = min(min(MOTOR_RPPWM_A, MOTOR_RPPWM_B), min(MOTOR_RPPWM_C, MOTOR_RPPWM_D));
+const float BALANCE_FACTOR_A = MIN_MOTOR_RPPWM / MOTOR_RPPWM_A;
+const float BALANCE_FACTOR_B = MIN_MOTOR_RPPWM / MOTOR_RPPWM_B;
+const float MBALANCE_FACTOR_C = MIN_MOTOR_RPPWM / MOTOR_RPPWM_C;
+const float BALANCE_FACTOR_D = MIN_MOTOR_RPPWM / MOTOR_RPPWM_D;
+
+// PWM Definition
+#define MAX_PWM 200
+#define MIN_PWM 0
+
+const float kP = 1.0;
+const float kI = 0.0;
+
+const float threshold = 1.0;
+
+extern MPU6050 mpu;
 
 class MotorController
 {
@@ -25,39 +51,60 @@ public:
     MotorController(void);
 
     void begin();
-    void perform();
-    void measure();
-    void move(uint8_t MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D);
+    void balance();
+    // void measure();
+
+    void STOP();
+    void BACK(int MOTOR_PWM);
+    void ADVANCE(int MOTOR_PWM);
+    void ADVANCE_LEFT(int MOTOR_PWM);
+    void RIGHT(int MOTOR_PWM);
+    void BACK_LEFT(int MOTOR_PWM);
+    void ADVANCE_RIGHT(int MOTOR_PWM);
+    void LEFT(int MOTOR_PWM);
+    void BACK_RIGHT(int MOTOR_PWM);
+    void ROTATE_BY(int MOTOR_PWM, int angle);
+    void ROTATE_TO(int MOTOR_PWM, int target_angle);
+    void ROTATE_CW(int MOTOR_PWM);
+    void ROTATE_CCW(int MOTOR_PWM);
 
     String command(char command);
 
-    void BACK(uint8_t MOTOR_PWM);
-    void ADVANCE(uint8_t MOTOR_PWM);
-    void ADVANCE_LEFT(uint8_t MOTOR_PWM);
-    void RIGHT(uint8_t MOTOR_PWM);
-    void BACK_LEFT(uint8_t MOTOR_PWM);
-    void ADVANCE_RIGHT(uint8_t MOTOR_PWM);
-    void LEFT(uint8_t MOTOR_PWM);
-    void BACK_RIGHT(uint8_t MOTOR_PWM);
-    void ROTATE_CW(uint8_t MOTOR_PWM);
-    void ROTATE_CCW(uint8_t MOTOR_PWM);
-    void STOP();
-
-    void onSpeedControl();
-    void offSpeedControl();
-
 private:
-    SpeedControllerPID speed_controller;
+    void _driveSetup();
+    void _rotateSetup();
 
-    int _setDirection(int direction, uint8_t pin_postive, uint8_t pin_negative);
+    inline void _drive(int MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D);
+    inline void _adjust();
+    inline void _rotate();
 
-    int _A_DIRECTION;
-    int _B_DIRECTION;
-    int _C_DIRECTION;
-    int _D_DIRECTION;
+    inline void _setWheelDirection(int DIR, int positive, int negative);
+    inline void _setDirection(int DIR_A, int DIR_B, int DIR_C, int DIR_D);
+
+    inline void _setTargetPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D);
+    inline void _setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D);
+
+    int _PWM_A_set;
+    int _PWM_B_set;
+    int _PWM_C_set;
+    int _PWM_D_set;
+    int _PWM_A_target;
+    int _PWM_B_target;
+    int _PWM_C_target;
+    int _PWM_D_target;
+
+    bool _is_driving;
+    bool _is_stopped;
+
+    float _integral;
+
+    float _target_angle;
+
+    unsigned long _prev_time;
+    unsigned long _time_step;
 };
 
-MotorController::MotorController(void) : _A_DIRECTION(MOTOR_STOP), _B_DIRECTION(MOTOR_STOP), _C_DIRECTION(MOTOR_STOP), _D_DIRECTION(MOTOR_STOP), speed_controller(SpeedControllerPID()) {}
+MotorController::MotorController(void) {}
 
 void MotorController::begin()
 {
@@ -69,44 +116,273 @@ void MotorController::begin()
     pinMode(DIRC2, OUTPUT);
     pinMode(DIRD1, OUTPUT);
     pinMode(DIRD2, OUTPUT);
-    speed_controller.begin();
+    _prev_time = millis();
+    _time_step = 10;
 }
 
-int MotorController::_setDirection(int direction, uint8_t pin_positive, uint8_t pin_negative)
+inline void MotorController::balance()
 {
-    if (direction > 0)
+    if (millis() - _prev_time >= _time_step)
     {
-        digitalWrite(pin_positive, LOW);
-        digitalWrite(pin_negative, HIGH);
-        return MOTOR_FORWARD;
+        _prev_time = millis();
+        if (_is_driving)
+        {
+            _adjust();
+        }
+        else
+        {
+            _rotate();
+        }
     }
-    else if (direction < 0)
+}
+
+inline void MotorController::_adjust()
+{
+    float _error = _target_angle - mpu.getAngleZ();
+    _integral += _error * kI;
+    int _output = round(kP * _error + _integral);
+
+    if (_error > threshold) // Left -> Right Slower
     {
-        digitalWrite(pin_positive, HIGH);
-        digitalWrite(pin_negative, LOW);
-        return MOTOR_BACKWARD;
+        _setPWM(_PWM_A_target, _PWM_B_target - round(_output), _PWM_C_target, _PWM_D_target);
+    }
+    else if (_error < -threshold) // Right -> Left Slower
+    {
+        _setPWM(_PWM_A_target + round(_output), _PWM_B_target, _PWM_C_target, _PWM_D_target);
+    }
+}
+
+inline void MotorController::_rotate()
+{
+    int _error = round(_target_angle - mpu.getAngleZ());
+
+    if (abs(_error) <= threshold)
+    {
+        _setDirection(MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
+        return;
+    }
+
+    int _angular_speed = abs(_error) > 30 ? 60 : abs(_error) * 2;
+
+    if (mpu.getGyroZ() > _angular_speed)
+    {
+        _setPWM(--_PWM_A_target, --_PWM_B_target, --_PWM_C_target, --_PWM_D_target);
     }
     else
     {
-        digitalWrite(pin_positive, LOW);
-        digitalWrite(pin_negative, LOW);
-        return MOTOR_STOP;
+        _setPWM(++_PWM_A_target, ++_PWM_B_target, ++_PWM_C_target, ++_PWM_D_target);
+    }
+    if (_error > threshold) // Turn Left
+    {
+        _setDirection(MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
+    }
+    else if (_error < -threshold) // Turn Right
+    {
+        _setDirection(MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
     }
 }
 
-void MotorController::move(uint8_t MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D)
+inline void MotorController::_setWheelDirection(int direction, int postive, int negative)
 {
-    _A_DIRECTION = _setDirection(DIR_A, DIRA1, DIRA2);
-    _B_DIRECTION = _setDirection(DIR_B, DIRB1, DIRB2);
-    _C_DIRECTION = _setDirection(DIR_C, DIRC1, DIRC2);
-    _D_DIRECTION = _setDirection(DIR_D, DIRD1, DIRD2);
+    if (direction > 0)
+    {
+        digitalWrite(postive, LOW);
+        digitalWrite(negative, HIGH);
+    }
+    else if (direction < 0)
+    {
+        digitalWrite(postive, HIGH);
+        digitalWrite(negative, LOW);
+    }
+    else
+    {
+        digitalWrite(postive, LOW);
+        digitalWrite(negative, LOW);
+    }
+}
 
-    speed_controller.setPWM(MOTOR_PWM);
+inline void MotorController::_setDirection(int DIR_A, int DIR_B, int DIR_C, int DIR_D)
+{
+    _setWheelDirection(DIR_A, DIRA1, DIRA2);
+    _setWheelDirection(DIR_B, DIRB1, DIRB2);
+    _setWheelDirection(DIR_C, DIRC1, DIRC2);
+    _setWheelDirection(DIR_D, DIRD1, DIRD2);
+}
+
+inline void MotorController::_setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D)
+{
+    if (PWM_A == _PWM_A_set && PWM_B == _PWM_B_set && PWM_C == _PWM_C_set && PWM_D == _PWM_D_set)
+    {
+        return;
+    }
+    _PWM_A_set = constrain(PWM_A, MIN_PWM, MAX_PWM);
+    _PWM_B_set = constrain(PWM_B, MIN_PWM, MAX_PWM);
+    _PWM_C_set = constrain(PWM_C, MIN_PWM, MAX_PWM);
+    _PWM_D_set = constrain(PWM_D, MIN_PWM, MAX_PWM);
+    analogWrite(PWMA, PWM_A);
+    analogWrite(PWMB, PWM_B);
+    analogWrite(PWMC, PWM_C);
+    analogWrite(PWMD, PWM_D);
+}
+
+inline void MotorController::_setTargetPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D)
+{
+    _PWM_A_target = constrain(PWM_A, MIN_PWM, MAX_PWM);
+    _PWM_B_target = constrain(PWM_B, MIN_PWM, MAX_PWM);
+    _PWM_C_target = constrain(PWM_C, MIN_PWM, MAX_PWM);
+    _PWM_D_target = constrain(PWM_D, MIN_PWM, MAX_PWM);
+}
+
+// Speed is weighed PWM based on the slowest motor
+inline void MotorController::_drive(int MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D)
+{
+    _setDirection(DIR_A, DIR_B, DIR_C, DIR_D);
+    _setTargetPWM(round(MOTOR_PWM * BALANCE_FACTOR_A), round(MOTOR_PWM * BALANCE_FACTOR_B), round(MOTOR_PWM * MBALANCE_FACTOR_C), round(MOTOR_PWM * BALANCE_FACTOR_D));
+}
+
+inline void MotorController::_driveSetup()
+{
+    _is_stopped = false;
+    _is_driving = true;
+    _integral = 0;
+    _target_angle = mpu.getAngleZ();
+}
+
+inline void MotorController::_rotateSetup()
+{
+    _setPWM(0, 0, 0, 0);
+    _is_stopped = false;
+    _is_driving = false;
+}
+
+//    ↓A-----B↓
+//     |  |  |
+//     |  ↓  |
+//    ↓C-----D↓
+void MotorController::BACK(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD);
+}
+
+//    ↑A-----B↑
+//     |  ↑  |
+//     |  |  |
+//    ↑C-----D↑
+void MotorController::ADVANCE(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD);
+}
+//    =A-----B↑
+//     |   ↖ |
+//     | ↖   |
+//    ↑C-----D=
+void MotorController::ADVANCE_LEFT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_STOP, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_STOP);
+}
+
+//    ↓A-----B↑
+//     |  ←  |
+//     |  ←  |
+//    ↑C-----D↓
+void MotorController::LEFT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
+}
+//    ↓A-----B=
+//     | ↙   |
+//     |   ↙ |
+//    =C-----D↓
+void MotorController::BACK_LEFT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_BACKWARD);
+}
+//    ↑A-----B=
+//     | ↗   |
+//     |   ↗ |
+//    =C-----D↑
+void MotorController::ADVANCE_RIGHT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_FORWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_FORWARD);
+}
+//    ↑A-----B↓
+//     |  →  |
+//     |  →  |
+//    ↓C-----D↑
+void MotorController::RIGHT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
+}
+//    =A-----B↓
+//     |   ↘ |
+//     | ↘   |
+//    ↓C-----D=
+void MotorController::BACK_RIGHT(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_STOP, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_STOP);
+}
+
+//    ↑A-----B↓
+//     | ↗ ↘ |
+//     | ↖ ↙ |
+//    ↑C-----D↓
+void MotorController::ROTATE_CW(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
+}
+
+//    ↓A-----B↑
+//     | ↙ ↖ |
+//     | ↘ ↗ |
+//    ↓C-----D↑
+void MotorController::ROTATE_CCW(int MOTOR_PWM)
+{
+    _driveSetup();
+    _drive(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
+}
+
+//    =A-----B=
+//     |  =  |
+//     |  =  |
+//    =C-----D=
+void MotorController::STOP()
+{
+    _is_stopped = true;
+    _drive(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
+}
+
+//    ↓A-----B↑  angle > _target_angle  ↑A-----B↓
+//     | ↙ ↖ |                           | ↗ ↘ |
+//     | ↘ ↗ |                           | ↖ ↙ |
+//    ↓C-----D↑                         ↑C-----D↓  angle < _target_angle
+void MotorController::ROTATE_BY(int MOTOR_PWM, int increment_angle)
+{
+    _rotateSetup();
+    _target_angle += increment_angle;
+}
+
+//    ↓A-----B↑  angle > _target_angle  ↑A-----B↓
+//     | ↙ ↖ |                           | ↗ ↘ |
+//     | ↘ ↗ |                           | ↖ ↙ |
+//    ↓C-----D↑                         ↑C-----D↓  angle < _target_angle
+void MotorController::ROTATE_TO(int MOTOR_PWM, int target_angle)
+{
+    _rotateSetup();
+    _target_angle = target_angle;
 }
 
 String MotorController::command(char command)
 {
-    static uint8_t _motor_pwm = 125;
+    static int _motor_pwm = 125;
     switch (command)
     {
     case 'A': // OK
@@ -155,135 +431,6 @@ String MotorController::command(char command)
     default:
         return "Invalid Command";
     }
-}
-
-void MotorController::measure()
-{
-    _setDirection(MOTOR_FORWARD, DIRA1, DIRA2);
-    _setDirection(MOTOR_FORWARD, DIRB1, DIRB2);
-    _setDirection(MOTOR_FORWARD, DIRC1, DIRC2);
-    _setDirection(MOTOR_FORWARD, DIRD1, DIRD2);
-    speed_controller.measure();
-}
-
-void MotorController::onSpeedControl()
-{
-    speed_controller.on();
-}
-
-void MotorController::offSpeedControl()
-{
-    speed_controller.off();
-}
-
-void MotorController::perform()
-{
-    speed_controller.perform();
-}
-
-//    ↓A-----B↓
-//     |  |  |
-//     |  ↓  |
-//    ↓C-----D↓
-void MotorController::BACK(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_BACKWARD);
-    speed_controller.reset();
-}
-
-//    ↑A-----B↑
-//     |  ↑  |
-//     |  |  |
-//    ↑C-----D↑
-void MotorController::ADVANCE(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_FORWARD);
-    speed_controller.reset();
-}
-//    =A-----B↑
-//     |   ↖ |
-//     | ↖   |
-//    ↑C-----D=
-void MotorController::ADVANCE_LEFT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_STOP, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_STOP);
-    speed_controller.reset();
-}
-
-//    ↓A-----B↑
-//     |  ←  |
-//     |  ←  |
-//    ↑C-----D↓
-void MotorController::LEFT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
-    speed_controller.reset();
-}
-//    ↓A-----B=
-//     | ↙   |
-//     |   ↙ |
-//    =C-----D↓
-void MotorController::BACK_LEFT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_BACKWARD);
-    speed_controller.reset();
-}
-//    ↑A-----B=
-//     | ↗   |
-//     |   ↗ |
-//    =C-----D↑
-void MotorController::ADVANCE_RIGHT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_FORWARD, MOTOR_STOP, MOTOR_STOP, MOTOR_FORWARD);
-    speed_controller.reset();
-}
-//    ↑A-----B↓
-//     |  →  |
-//     |  →  |
-//    ↓C-----D↑
-void MotorController::RIGHT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
-    speed_controller.reset();
-}
-//    =A-----B↓
-//     |   ↘ |
-//     | ↘   |
-//    ↓C-----D=
-void MotorController::BACK_RIGHT(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_STOP, MOTOR_BACKWARD, MOTOR_BACKWARD, MOTOR_STOP);
-    speed_controller.reset();
-}
-
-//    ↑A-----B↓
-//     | ↗ ↘ |
-//     | ↖ ↙ |
-//    ↑C-----D↓
-void MotorController::ROTATE_CW(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
-    speed_controller.reset();
-}
-
-//    ↓A-----B↑
-//     | ↙ ↖ |
-//     | ↘ ↗ |
-//    ↓C-----D↑
-void MotorController::ROTATE_CCW(uint8_t MOTOR_PWM)
-{
-    move(MOTOR_PWM, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
-    speed_controller.reset();
-}
-
-//    =A-----B=
-//     |  =  |
-//     |  =  |
-//    =C-----D=
-void MotorController::STOP()
-{
-    move(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
-    speed_controller.reset();
 }
 
 #endif

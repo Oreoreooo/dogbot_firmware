@@ -4,26 +4,39 @@
 #include "lib/Sensor.hpp"
 #include "lib/State.h"
 #include <Arduino.h>
+#include <MPU6050_light.h>
+#include <Wire.h>
 
 ControlState state = IDLE;
 CommunicationSerial communication;
 Display_SSD1306 display;
 MotorController controller;
+MPU6050 mpu(Wire);
 Sensor sensor;
 
-bool start_flag;
+bool parking_start;
+unsigned long recv_time;
+unsigned long send_time;
+char sr_data;
+char wr_data;
 
 void setup()
 {
   communication.begin();
-
   controller.begin();
   controller.STOP();
-
   display.begin();
+  sensor.begin();
 
   display.show("Calibrating...");
-  sensor.begin();
+  unsigned long start_time = millis();
+  mpu.begin();
+  mpu.setFilterGyroCoef(0.965);
+  while (millis() - start_time < 1000)
+  {
+    sensor.update();
+  }
+  mpu.calcGyroOffsets();
   // controller.measure();
 }
 
@@ -40,7 +53,7 @@ inline void parkingStateMachine()
   switch (state)
   {
   case IDLE: // After start, wait for 2 sec
-    if (start_flag)
+    if (parking_start)
     {
       delay(2000);
       state = MOVE;
@@ -50,8 +63,9 @@ inline void parkingStateMachine()
   case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
     if (move(25))
     {
+      state = TURN_CW_90;
     }
-    state = TURN_CW_90;
+
     break;
 
   case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec .
@@ -76,7 +90,7 @@ inline void parkingStateMachine()
     break;
 
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
-    display.displayMeasured(&sensor);
+    display.displayMeasured(&sensor, &mpu);
     delay(2000);
     state = PARK;
     break;
@@ -93,20 +107,15 @@ inline void parkingStateMachine()
 
 void loop()
 {
-  static unsigned long recv_time;
-  static unsigned long send_time;
-  static unsigned long pid_time;
-  static char sr_data;
-  static char wr_data;
-
   sensor.update();
+  mpu.update();
 
   if (millis() > (send_time + 150))
   {
     send_time = millis();
-    // comm.serialSensorDataTX(&sensor);
-    communication.wirelessSensorDataTX(&sensor);
-    display.displaySensorData(&sensor);
+    // comm.serialSensorDataTX(&sensor, &mpu);
+    // communication.wirelessSensorDataTX(&sensor, &mpu);
+    display.displaySensorData(&sensor, &mpu);
   }
 
   if (millis() > (recv_time + 15))
@@ -114,9 +123,9 @@ void loop()
     recv_time = millis();
     // sr_data = comm.serialControlMotor(&controller);
     wr_data = communication.wirelessControlMotor(&controller);
-    start_flag = (sr_data == 'S' || wr_data == 'S');
+    parking_start = (sr_data == 'S' || wr_data == 'S');
   }
 
   parkingStateMachine();
-  controller.perform();
+  controller.balance();
 }
