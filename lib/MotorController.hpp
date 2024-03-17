@@ -74,10 +74,9 @@ public:
 private:
     inline int _setDirection(int direction, uint8_t dir_pin_positive, uint8_t dir_pin_negative);
     inline void _setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D);
-    inline void _writePWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D);
     inline void _readECDs();
     inline void _computePID();
-    inline void _computeEMA();
+    inline void _logPWM();
 
     int _A_DIRECTION;
     int _B_DIRECTION;
@@ -99,18 +98,11 @@ private:
     uint8_t _PWM_C;
     uint8_t _PWM_D;
 
-    uint8_t _PWM_A_target;
-    uint8_t _PWM_B_target;
-    uint8_t _PWM_C_target;
-    uint8_t _PWM_D_target;
-
     unsigned long _prev_time = 0;
     const unsigned long _time_step = 10;
 
     float _kP = 0.20;
     float _kI = 0.000005;
-
-    bool boost_done = false;
 
     int32_t _prev_error_A = 0;
     int32_t _prev_error_B = 0;
@@ -232,7 +224,6 @@ inline void MotorController::STOP()
 {
     MOVE(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
     resetPID();
-    boost_done = false;
 }
 
 inline int MotorController::_setDirection(int direction, uint8_t dir_pin_positive, uint8_t dir_pin_negative)
@@ -258,21 +249,6 @@ inline int MotorController::_setDirection(int direction, uint8_t dir_pin_positiv
 }
 
 inline void MotorController::_setPWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D)
-{
-    if (!boost_done)
-    {
-        _PWM_A_target = PWM_A;
-        _PWM_B_target = PWM_B;
-        _PWM_C_target = PWM_C;
-        _PWM_D_target = PWM_D;
-    }
-    else
-    {
-        _writePWM(PWM_A, PWM_B, PWM_C, PWM_D);
-    }
-}
-
-inline void MotorController::_writePWM(uint8_t PWM_A, uint8_t PWM_B, uint8_t PWM_C, uint8_t PWM_D)
 {
     _PWM_A = PWM_A;
     _PWM_B = PWM_B;
@@ -358,43 +334,26 @@ inline void MotorController::_computePID()
     }
 }
 
-inline void MotorController::_computeEMA()
+inline void MotorController::_logPWM()
 {
-    _PWM_A = _PWM_A_target * 0.1 + _PWM_A * 0.9;
-    _PWM_B = _PWM_B_target * 0.1 + _PWM_B * 0.9;
-    _PWM_C = _PWM_C_target * 0.1 + _PWM_C * 0.9;
-    _PWM_D = _PWM_D_target * 0.1 + _PWM_D * 0.9;
-
-    if (abs(_PWM_A - _PWM_A_target) <= 5 && abs(_PWM_B - _PWM_B_target) <= 5 && abs(_PWM_C - _PWM_C_target) <= 5 && abs(_PWM_D - _PWM_D_target) <= 5)
-    {
-        _PWM_A = _PWM_A_target;
-        _PWM_B = _PWM_B_target;
-        _PWM_C = _PWM_C_target;
-        _PWM_D = _PWM_D_target;
-        boost_done = true;
-    }
+    Serial.print(_PWM_A);
+    Serial.print(",");
+    Serial.print(_PWM_B);
+    Serial.print(",");
+    Serial.print(_PWM_C);
+    Serial.print(",");
+    Serial.println(_PWM_D);
 }
 
 // PID Control Based on Encoder
 inline void MotorController::performPID()
 {
-    unsigned long _interval = millis() - _prev_time;
-
-    if (_interval >= _time_step)
+    if (millis() - _prev_time >= _time_step)
     {
-        boost_done ? _computePID() : _computeEMA();
         _prev_time = millis();
-        analogWrite(PWMA, _PWM_A);
-        analogWrite(PWMB, _PWM_B);
-        analogWrite(PWMC, _PWM_C);
-        analogWrite(PWMD, _PWM_D);
-        Serial.print(_PWM_A);
-        Serial.print(",");
-        Serial.print(_PWM_B);
-        Serial.print(",");
-        Serial.print(_PWM_C);
-        Serial.print(",");
-        Serial.println(_PWM_D);
+
+        _computePID();
+        _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
     }
 }
 
