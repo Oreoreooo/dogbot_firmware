@@ -24,6 +24,14 @@ void setup()
   controller.ADVANCE(100);
 }
 
+bool turn(int angle){
+
+}
+
+bool move(int target_distance){
+
+}
+
 inline void parkingStateMachine()
 {
   switch (state)
@@ -37,15 +45,32 @@ inline void parkingStateMachine()
     break;
 
   case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
-    delay(2000);
-    state = TURN;
+    if (move(25)){
+      
+
+    }
+    state = TURN_CW_90;
     break;
 
-  case TURN: // Turn CW 90°, wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
-    delay(2000);
-    delay(2000);
-    delay(2000);
-    state = MEASURE;
+  case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
+    if (turn(-90))
+    {
+      state = TURN_CCW_270;
+    }
+    break;
+
+  case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec → CW 180°, wait 2 sec.
+    if (turn(270))
+    {
+      state = TURN_CW_180;
+    }
+    break;
+
+  case TURN_CW_180: // Turn CW 180°(-180°), wait 2 sec.
+    if (turn(-180))
+    {
+      state = MEASURE;
+    }
     break;
 
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
