@@ -20,10 +20,6 @@ public:
 
     inline void serialSensorDataTX(Sensor *sensor);
     inline void wirelessSensorDataTX(Sensor *sensor);
-
-private:
-    inline void _motorControl(char data);
-    // inline String _commandToString(char data);
 };
 
 CommunicationSerial::CommunicationSerial(void) {}
@@ -87,43 +83,5 @@ inline void CommunicationSerial::wirelessSensorDataTX(Sensor *sensor)
     WR.print(sensor->getAngleZ());
     WR.println("");
 }
-
-
-// inline String CommunicationSerial::_commandToString(char data)
-// {
-//     switch (data)
-//     {
-//     case 'A':
-//         return "Forward";
-//     case 'B':
-//         return "Forward Right";
-//     case 'C':
-//         return "Rotate Right";
-//     case 'D':
-//         return "Backward Right";
-//     case 'E':
-//         return "Backward";
-//     case 'F':
-//         return "Backward Left";
-//     case 'G':
-//         return "Rotate Left";
-//     case 'H':
-//         return "Forward Left";
-//     case 'L':
-//         return "+170 PWM";
-//     case 'M':
-//         return "-170 PWM";
-//     case 'Z':
-//         return "Stop";
-//     case 'z':
-//         return "Stop";
-//     case 'd':
-//         return "Left";
-//     case 'b':
-//         return "Right";
-//     default:
-//         return "Invalid Command";
-//     }
-// }
 
 #endif

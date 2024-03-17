@@ -24,12 +24,12 @@ void setup()
   controller.ADVANCE(100);
 }
 
-bool turn(int angle){
-
+bool turn(int angle)
+{
 }
 
-bool move(int target_distance){
-
+bool move(int target_distance)
+{
 }
 
 inline void parkingStateMachine()
@@ -45,21 +45,20 @@ inline void parkingStateMachine()
     break;
 
   case MOVE: // Move to a location of 25cm from the wall, and wait for 2 sec.
-    if (move(25)){
-      
-
+    if (move(25))
+    {
     }
     state = TURN_CW_90;
     break;
 
-  case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec → CCW 270°, wait 2 sec → CW 180°, wait 2 sec.
+  case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec .
     if (turn(-90))
     {
       state = TURN_CCW_270;
     }
     break;
 
-  case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec → CW 180°, wait 2 sec.
+  case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec.
     if (turn(270))
     {
       state = TURN_CW_180;
@@ -77,11 +76,6 @@ inline void parkingStateMachine()
     display.displayMeasured(&sensor);
     delay(2000);
     state = TRANSFER;
-    break;
-
-  case TRANSFER: // Transfer to the parking location.
-    delay(2000);
-    state = PARKING;
     break;
 
   case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
@@ -108,7 +102,7 @@ void loop()
   {
     send_time = millis();
     // comm.serialSensorDataTX(&sensor);
-    // comm.wirelessSensorDataTX(&sensor);
+    comm.wirelessSensorDataTX(&sensor);
     display.displaySensorData(&sensor);
   }
 
@@ -122,5 +116,5 @@ void loop()
 
   controller.performPID();
 
-  // parkingStateMachine();
+  parkingStateMachine();
 }

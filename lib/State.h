@@ -9,8 +9,7 @@ enum ControlState
     TURN_CCW_270,
     TURN_CW_180,
     MEASURE,
-    TRANSFER,
-    PARKING,
+    PARK,
     STOP
 };
 
