@@ -1,5 +1,3 @@
-.venv
-data.csv
-.idea/
-.cmakelists.txt
 .vscode/
+.venv/
+.idea/
