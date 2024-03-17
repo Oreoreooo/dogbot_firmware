@@ -20,7 +20,6 @@ public:
     float getDistance();
 
 private:
-    void _updatePulse();
     unsigned long _pulse_duration;
     unsigned long _pulse_start_time;
     unsigned long _measure_start_time;
@@ -39,8 +38,11 @@ void Sensor::begin()
     pinMode(PTR_R, INPUT);
 }
 
-void Sensor::_updatePulse()
+void Sensor::update()
 {
+    _light_L = 0.9 * _light_L + 0.1 * analogRead(PTR_L);
+    _light_R = 0.9 * _light_R + 0.1 * analogRead(PTR_R);
+
     if (millis() > (_measure_start_time + 65))
     {
         _measure_start_time = millis();
@@ -68,14 +70,6 @@ void Sensor::_updatePulse()
         _measure_done = true;
         _measure_start = false;
     }
-}
-
-void Sensor::update()
-{
-    _light_L = 0.9 * _light_L + 0.1 * analogRead(PTR_L);
-    _light_R = 0.9 * _light_R + 0.1 * analogRead(PTR_R);
-
-    _updatePulse();
 }
 
 int Sensor::getLightLeft()

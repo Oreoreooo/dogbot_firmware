@@ -71,8 +71,8 @@ public:
     String command(char command);
 
 private:
-    void _driveSetup();
-    void _rotateSetup();
+    inline void _driveSetup();
+    inline void _rotateSetup();
 
     inline void _drive(int MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D);
     inline void _adjust();
@@ -118,9 +118,10 @@ void MotorController::begin()
     pinMode(DIRD2, OUTPUT);
     _prev_time = millis();
     _time_step = 10;
+    STOP();
 }
 
-inline void MotorController::balance()
+void MotorController::balance()
 {
     if (millis() - _prev_time >= _time_step)
     {
