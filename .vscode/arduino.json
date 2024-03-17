@@ -1,7 +1,0 @@
-{
-    "configuration": "cpu=atmega2560",
-    "board": "arduino:avr:mega",
-    "sketch": "elec3848_parking.ino",
-    "port": "/dev/ttyUSB0",
-    "output": "../build"
-}
