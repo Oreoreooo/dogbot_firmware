@@ -4,8 +4,8 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 
 #include <Arduino.h>
-#include "SpeedController.hpp"
 #include <Encoder.h>
+#include "SpeedController.hpp"
 
 #define ECDAA 18 // Motor A Encoder PIN A
 #define ECDAB 31 // Motor A Encoder PIN B
@@ -22,13 +22,14 @@ const float kD = 0.0;
 
 struct MotorPID
 {
-    int32_t ECD_val;
-    int32_t ECD_val_prev;
-    int32_t ECD_val_diff;
     float integral;
     float error;
-    float prev_input;
     float derivative;
+
+    int32_t ECD_val;
+    int32_t ECD_val_prev;
+    int32_t ECD_diff;
+    int32_t ECD_diff_prev;
 };
 
 class SpeedControllerPID : public SpeedController
@@ -37,28 +38,23 @@ public:
     SpeedControllerPID(void);
     virtual void begin() override;
     virtual void reset() override;
-    inline virtual void perform() override;
-    inline virtual void setPWM(int MOTOR_PWM, bool rectify) override;
-
+    virtual inline void perform() override;
+    virtual void setPWM(int MOTOR_PWM) override;
     virtual void measure() override;
 
 private:
     void _read();
-
     unsigned long _dT;
     unsigned long _prev_time;
     unsigned long _time_step;
-
-    struct MotorPID _MTRA = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
-    struct MotorPID _MTRB = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
-    struct MotorPID _MTRC = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
-    struct MotorPID _MTRD = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
-
+    struct MotorPID _MTRA;
+    struct MotorPID _MTRB;
+    struct MotorPID _MTRC;
+    struct MotorPID _MTRD;
     Encoder _ECDA;
     Encoder _ECDB;
     Encoder _ECDC;
     Encoder _ECDD;
-
     float _set_point;
 };
 
@@ -94,38 +90,39 @@ void SpeedControllerPID::reset()
 inline void SpeedControllerPID::perform()
 {
     _dT = millis() - _prev_time;
-    if (_dT >= _time_step)
+    if (_dT >= _time_step && _control_on)
     {
         _prev_time = millis();
         _read();
 
-        _MTRA.error = _set_point - (float)_MTRA.ECD_val_diff / (float)_dT * TIME_INTERVAL;
-        _MTRB.error = _set_point - (float)_MTRB.ECD_val_diff / (float)_dT * TIME_INTERVAL;
-        _MTRC.error = _set_point - (float)_MTRC.ECD_val_diff / (float)_dT * TIME_INTERVAL;
-        _MTRD.error = _set_point - (float)_MTRD.ECD_val_diff / (float)_dT * TIME_INTERVAL;
+        // convert to revolution per step
+        _MTRA.error = _set_point - (float)_MTRA.ECD_diff / (float)_dT * TIME_INTERVAL;
+        _MTRB.error = _set_point - (float)_MTRB.ECD_diff / (float)_dT * TIME_INTERVAL;
+        _MTRC.error = _set_point - (float)_MTRC.ECD_diff / (float)_dT * TIME_INTERVAL;
+        _MTRD.error = _set_point - (float)_MTRD.ECD_diff / (float)_dT * TIME_INTERVAL;
 
-        _MTRA.integral = constrain(_MTRA.integral + kI * _MTRA.error, MIN_PWM_f, MAX_PWM_f);
-        _MTRB.integral = constrain(_MTRB.integral + kI * _MTRB.error, MIN_PWM_f, MAX_PWM_f);
-        _MTRC.integral = constrain(_MTRC.integral + kI * _MTRC.error, MIN_PWM_f, MAX_PWM_f);
-        _MTRD.integral = constrain(_MTRD.integral + kI * _MTRD.error, MIN_PWM_f, MAX_PWM_f);
+        _MTRA.integral = _MTRA.integral + kI * _MTRA.error;
+        _MTRB.integral = _MTRB.integral + kI * _MTRB.error;
+        _MTRC.integral = _MTRC.integral + kI * _MTRC.error;
+        _MTRD.integral = _MTRD.integral + kI * _MTRD.error;
 
-        _MTRA.derivative = _MTRA.ECD_val_diff - _MTRA.prev_input;
-        _MTRB.derivative = _MTRB.ECD_val_diff - _MTRB.prev_input;
-        _MTRC.derivative = _MTRC.ECD_val_diff - _MTRC.prev_input;
-        _MTRD.derivative = _MTRD.ECD_val_diff - _MTRD.prev_input;
+        _MTRA.derivative = _MTRA.ECD_diff - _MTRA.ECD_diff_prev;
+        _MTRB.derivative = _MTRB.ECD_diff - _MTRB.ECD_diff_prev;
+        _MTRC.derivative = _MTRC.ECD_diff - _MTRC.ECD_diff_prev;
+        _MTRD.derivative = _MTRD.ECD_diff - _MTRD.ECD_diff_prev;
 
-        _PWM_A = constrain(kP * _MTRA.error + _MTRA.integral + kD * _MTRA.derivative, MIN_PWM, MAX_PWM);
-        _PWM_B = constrain(kP * _MTRB.error + _MTRB.integral + kD * _MTRB.derivative, MIN_PWM, MAX_PWM);
-        _PWM_C = constrain(kP * _MTRC.error + _MTRC.integral + kD * _MTRC.derivative, MIN_PWM, MAX_PWM);
-        _PWM_D = constrain(kP * _MTRD.error + _MTRD.integral + kD * _MTRD.derivative, MIN_PWM, MAX_PWM);
+        _PWM_A = constrain(kP * _MTRA.error + _MTRA.integral + kD * _MTRA.derivative + _PWM_A, MIN_PWM, MAX_PWM);
+        _PWM_B = constrain(kP * _MTRB.error + _MTRB.integral + kD * _MTRB.derivative + _PWM_B, MIN_PWM, MAX_PWM);
+        _PWM_C = constrain(kP * _MTRC.error + _MTRC.integral + kD * _MTRC.derivative + _PWM_C, MIN_PWM, MAX_PWM);
+        _PWM_D = constrain(kP * _MTRD.error + _MTRD.integral + kD * _MTRD.derivative + _PWM_D, MIN_PWM, MAX_PWM);
 
-        _MTRA.prev_input = _MTRA.ECD_val_diff;
-        _MTRB.prev_input = _MTRB.ECD_val_diff;
-        _MTRC.prev_input = _MTRC.ECD_val_diff;
-        _MTRD.prev_input = _MTRD.ECD_val_diff;
+        _MTRA.ECD_diff_prev = _MTRA.ECD_diff;
+        _MTRB.ECD_diff_prev = _MTRB.ECD_diff;
+        _MTRC.ECD_diff_prev = _MTRC.ECD_diff;
+        _MTRD.ECD_diff_prev = _MTRD.ECD_diff;
 
         _writePWM();
-        _log();
+        // _log();
     }
 }
 
@@ -141,21 +138,23 @@ inline void SpeedControllerPID::_read()
     _MTRC.ECD_val = -_ECDC.read();
     _MTRD.ECD_val = _ECDD.read();
 
-    _MTRA.ECD_val_diff = _MTRA.ECD_val - _MTRA.ECD_val_prev;
-    _MTRB.ECD_val_diff = _MTRB.ECD_val - _MTRB.ECD_val_prev;
-    _MTRC.ECD_val_diff = _MTRC.ECD_val - _MTRC.ECD_val_prev;
-    _MTRD.ECD_val_diff = _MTRD.ECD_val - _MTRD.ECD_val_prev;
+    _MTRA.ECD_diff = _MTRA.ECD_val - _MTRA.ECD_val_prev;
+    _MTRB.ECD_diff = _MTRB.ECD_val - _MTRB.ECD_val_prev;
+    _MTRC.ECD_diff = _MTRC.ECD_val - _MTRC.ECD_val_prev;
+    _MTRD.ECD_diff = _MTRD.ECD_val - _MTRD.ECD_val_prev;
 }
 
-void SpeedControllerPID::setPWM(int MOTOR_PWM, bool rectify)
+void SpeedControllerPID::setPWM(int MOTOR_PWM)
 {
+    SpeedController::setPWM(MOTOR_PWM);
     _set_point = (float)MOTOR_PWM * MIN_MOTOR_RPPWM;
 }
 
 // WARNING: leaving the wheels in the air before run this function.
 void SpeedControllerPID::measure()
 {
-    setPWM(255, false);
+    _off();
+    setPWM(255);
     unsigned long curr_time;
     unsigned long prev_time;
     unsigned long interval;
@@ -169,13 +168,13 @@ void SpeedControllerPID::measure()
             _read();
             Serial.print(interval);
             Serial.print(",");
-            Serial.print(_MTRA.ECD_val_diff);
+            Serial.print(_MTRA.ECD_diff);
             Serial.print(",");
-            Serial.print(_MTRB.ECD_val_diff);
+            Serial.print(_MTRB.ECD_diff);
             Serial.print(",");
-            Serial.print(_MTRC.ECD_val_diff);
+            Serial.print(_MTRC.ECD_diff);
             Serial.print(",");
-            Serial.println(_MTRD.ECD_val_diff);
+            Serial.println(_MTRD.ECD_diff);
         }
     }
 }

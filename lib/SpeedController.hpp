@@ -33,13 +33,16 @@ public:
     SpeedController();
     virtual void begin();
     virtual void reset();
-    virtual void perform();
+    virtual inline void perform();
     virtual void measure();
-    virtual void setPWM(int MOTOR_PWM, bool rectify);
+    virtual void setPWM(int MOTOR_PWM);
+    void off();
+    void on();
 
 protected:
-    void _log();
+    inline void _log();
     inline void _writePWM();
+    bool _control_on;
     int _PWM_A;
     int _PWM_B;
     int _PWM_C;
@@ -50,6 +53,7 @@ SpeedController::SpeedController() : _PWM_A(0), _PWM_B(0), _PWM_C(0), _PWM_D(0) 
 
 void SpeedController::begin()
 {
+    _control_on = true;
     pinMode(PWMA, OUTPUT);
     pinMode(PWMB, OUTPUT);
     pinMode(PWMC, OUTPUT);
@@ -58,10 +62,11 @@ void SpeedController::begin()
 
 void SpeedController::reset()
 {
+    _control_on = true;
 }
 
 // PID Control Based on Encoder
-void SpeedController::perform()
+inline void SpeedController::perform()
 {
 }
 
@@ -75,18 +80,28 @@ inline void SpeedController::_writePWM()
 
 void SpeedController::measure()
 {
+    _log();
 }
 
-void SpeedController::setPWM(int MOTOR_PWM, bool rectify)
+void SpeedController::setPWM(int MOTOR_PWM)
 {
-    _PWM_A = rectify ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_A), MIN_PWM, MAX_PWM) : MOTOR_PWM;
-    _PWM_B = rectify ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_B), MIN_PWM, MAX_PWM) : MOTOR_PWM;
-    _PWM_C = rectify ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_C), MIN_PWM, MAX_PWM) : MOTOR_PWM;
-    _PWM_D = rectify ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_D), MIN_PWM, MAX_PWM) : MOTOR_PWM;
+    _PWM_A = _control_on ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_A), MIN_PWM, MAX_PWM) : MOTOR_PWM;
+    _PWM_B = _control_on ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_B), MIN_PWM, MAX_PWM) : MOTOR_PWM;
+    _PWM_C = _control_on ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_C), MIN_PWM, MAX_PWM) : MOTOR_PWM;
+    _PWM_D = _control_on ? constrain((int)(MOTOR_PWM / MOTOR_BALANCE_FACTOR_D), MIN_PWM, MAX_PWM) : MOTOR_PWM;
     _writePWM();
 }
+void SpeedController::off()
+{
+    _control_on = false;
+}
 
-void SpeedController::_log()
+void SpeedController::on()
+{
+    _control_on = true;
+}
+
+inline void SpeedController::_log()
 {
     Serial.print(_PWM_A);
     Serial.print(",");
