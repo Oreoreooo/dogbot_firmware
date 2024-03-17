@@ -117,7 +117,6 @@ void loop()
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
-  controller.perform();
-
   parkingStateMachine();
+  controller.perform();
 }
