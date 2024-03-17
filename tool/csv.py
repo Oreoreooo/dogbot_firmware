@@ -31,11 +31,11 @@ def read_csv_file(file_path):
             for k, row in enumerate(reader):
                 if k < 1000:
                     continue
-                microsecond = float(row[0])
-                time_interval.append(microsecond)
+                ms = float(row[0])
+                time_interval.append(ms)
                 for i in range(4):
                     x = abs(float(row[i + 1]))
-                    rps_data[i].append(np.true_divide(x, microsecond))
+                    rps_data[i].append(np.true_divide(x, ms))
                     rpp_data[i].append(np.true_divide(x, 255))
                     avg_revolution[i].append(x)
     finally:
