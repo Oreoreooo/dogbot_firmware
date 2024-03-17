@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 ControlState state = IDLE;
-CommunicationSerial comm;
+CommunicationSerial communication;
 Display_SSD1306 display;
 MotorController controller;
 Sensor sensor;
@@ -15,21 +15,23 @@ bool start_flag;
 
 void setup()
 {
+  communication.begin();
+
   controller.begin();
   controller.STOP();
+
   display.begin();
+
   display.show("Calibrating...");
   sensor.begin();
-  display.show("Alt-F4!");
-  comm.begin();
   // controller.measure();
 }
 
-bool turn(int angle)
+inline bool turn(int angle)
 {
 }
 
-bool move(int target_distance)
+inline bool move(int target_distance)
 {
 }
 
@@ -76,10 +78,10 @@ inline void parkingStateMachine()
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
     display.displayMeasured(&sensor);
     delay(2000);
-    state = TRANSFER;
+    state = PARK;
     break;
 
-  case PARKING: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
+  case PARK: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
     delay(2000);
     state = STOP;
     break;
@@ -103,7 +105,7 @@ void loop()
   {
     send_time = millis();
     // comm.serialSensorDataTX(&sensor);
-    comm.wirelessSensorDataTX(&sensor);
+    communication.wirelessSensorDataTX(&sensor);
     display.displaySensorData(&sensor);
   }
 
@@ -111,7 +113,7 @@ void loop()
   {
     recv_time = millis();
     // sr_data = comm.serialControlMotor(&controller);
-    // wr_data = comm.wirelessControlMotor(&controller);
+    wr_data = communication.wirelessControlMotor(&controller);
     start_flag = (sr_data == 'S' || wr_data == 'S');
   }
 
