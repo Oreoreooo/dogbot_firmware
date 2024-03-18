@@ -9,6 +9,7 @@
 
 #define RUNNING_PWM 100
 #define DISTANCE_THRESHOLD 1
+#define STATIC_THRESHOLD 500
 
 ControlState state = IDLE;
 MotorController controller;
@@ -16,7 +17,7 @@ MPU6050 mpu(Wire);
 Sensor sensor;
 
 bool parking_start = false;
-static bool _debug_flag = false;
+static bool _debug_flag = true;
 unsigned long wait_time = 0;
 unsigned long recv_time = 0;
 unsigned long send_time = 0;
@@ -38,35 +39,87 @@ void setup()
   mpu.calcGyroOffsets();
 }
 
-inline bool turn(int angle)
+inline bool turn(float angle)
 {
-}
+  static float target_orientation = mpu.getAngleZ() + angle;
+  static float initial_orientation = mpu.getAngleZ();
 
-int static_count;
+  if (target_orientation)
+
+    controller.ROTATE_BY(RUNNING_PWM, angle);
+
+  // decide when to stop
+  // get current orientation -> compute target orientation -> compare instant orientation with target orientation
+
+  // return when finished turning process
+}
 
 inline bool move_to(int target_distance)
 {
+  static unsigned long static_count = 0;
 
-  if (target_distance - sensor.getDistance() > DISTANCE_THRESHOLD)
+  // By approaching the final destination, the pwm value should keep decreasing correspondingly
+
+  if (static_count > STATIC_THRESHOLD)
+  {
+    static_count = 0;
+    return true;
+  }
+  else if (target_distance - sensor.getDistance() > DISTANCE_THRESHOLD)
   {
     controller.ADVANCE(RUNNING_PWM);
+    static_count = 0;
+    return false;
   }
   else if (target_distance - sensor.getDistance() < -DISTANCE_THRESHOLD)
   {
     controller.BACK(RUNNING_PWM);
-    static_count
-  } else{
-    static_count++;
+    static_count = 0;
+    return false;
   }
-
-  if (static_count > 100)
+  else
   {
-    return true;
+    controller.STOP();
+    static_count++;
+    return false;
   }
 }
 
 inline bool park()
 {
+  // first adjust the car perpendicular to the wall
+  while (mpu.getAngleZ() != 0)
+  {
+    // when angle < 0, turn left
+    if (mpu.getAngleZ() > 0)
+    {
+      controller.ROTATE_CW(RUNNING_PWM);
+    }
+    // when angle < 0, turn left
+    if (mpu.getAngleZ() < 0)
+    {
+      controller.ROTATE_CCW(RUNNING_PWM);
+    }
+  }
+
+  // center the LED
+  while (sensor.getLightLeft() != sensor.getLightRight())
+  {
+    if (sensor.getLightLeft() > sensor.getLightRight())
+    { // left brigter->move left
+      controller.LEFT(RUNNING_PWM);
+    }
+    if (sensor.getLightLeft() < sensor.getLightRight())
+    { // right brigter->move right
+      controller.RIGHT(RUNNING_PWM);
+    }
+  }
+
+  // move to 5cm position to the wall
+  while (sensor.getDistance() > 5)
+  {
+    controller.ADVANCE(RUNNING_PWM);
+  }
 }
 
 inline void parkingStateMachine()
@@ -142,7 +195,7 @@ void loop()
 {
   sensor.update();
   mpu.update();
-
+  
   if (millis() > (send_time + 500))
   {
     send_time = millis();

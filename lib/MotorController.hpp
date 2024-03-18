@@ -37,7 +37,9 @@ const float BALANCE_FACTOR_D = MIN_MOTOR_TURN / MOTOR_TURN_D;
 
 const float threshold = 1.0;
 const float kP = 1.0;
-const float kI = 0.005;
+
+const float threshold_rorate = 5.0;
+const float kP_rotate = 0.5;
 
 extern MPU6050 mpu;
 
@@ -60,8 +62,8 @@ public:
     void ADVANCE_RIGHT(int MOTOR_PWM);
     void LEFT(int MOTOR_PWM);
     void BACK_RIGHT(int MOTOR_PWM);
-    void ROTATE_BY(int MOTOR_PWM, int angle);
-    void ROTATE_TO(int MOTOR_PWM, int target_angle);
+    void ROTATE_BY(int MOTOR_PWM, float angle);
+    void ROTATE_TO(int MOTOR_PWM, float target_angle);
     void ROTATE_CW(int MOTOR_PWM);
     void ROTATE_CCW(int MOTOR_PWM);
 
@@ -93,8 +95,6 @@ private:
 
     bool _is_driving;
     bool _is_stopped;
-
-    float _integral;
 
     float _target_angle;
 
@@ -139,58 +139,37 @@ inline void MotorController::_adjust()
 {
     float error = _target_angle - mpu.getAngleZ();
 
-    if (abs(round(error)) <= threshold)
+    if (error > -threshold && error < threshold)
     {
         _setPWM(_PWM_A_target, _PWM_B_target, _PWM_C_target, _PWM_D_target);
         return;
     }
 
-    _integral += error * kI;
-    float output = kP * error + _integral;
-
-    float gyro_z = mpu.getGyroZ();
-
-    Serial.print("E: ");
-    Serial.print(error);
-    Serial.print(", O: ");
-    Serial.print(output);
-    Serial.print(", G: ");
-    Serial.println(gyro_z);
+    // _integral += error * kI;
+    int output = round(kP * error);
 
     _setPWM(_PWM_A_target - output, _PWM_B + output, _PWM_C_target - output, _PWM_D + output);
 }
 
 inline void MotorController::_rotate()
 {
-    float _error = _target_angle - mpu.getAngleZ();
-
-    if (_error > threshold) // CW
+    float error = _target_angle - mpu.getAngleZ();
+    float delta_error = abs(error);
+    int round_error = round(error - mpu.getAngleZ());
+    
+    Serial.println(round_error);
+    if (delta_error < threshold_rorate)
     {
-        _setDirection(MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD);
-    }
-    else if (_error < -threshold) // CCW
-    {
-        _setDirection(MOTOR_BACKWARD, MOTOR_FORWARD, MOTOR_BACKWARD, MOTOR_FORWARD);
-    }
-    else
-    {
-        _setDirection(MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
-        _setPWM(0, 0, 0, 0);
+        STOP();
+        Serial.println("Stop");
         return;
     }
 
-    _integral += _error * kI;
-    float output = abs(kP * _error + _integral);
-    float gyro_z = abs(mpu.getGyroZ());
+    _setDirection(round_error, round_error, round_error, round_error);
 
-    if (gyro_z > output)
-    {
-        _setPWM(_PWM_B - 1, _PWM_B - 1, _PWM_B - 1, _PWM_D - 1);
-    }
-    else if (gyro_z < output)
-    {
-        _setPWM(_PWM_A + 1, _PWM_A + 1, _PWM_C - 1, _PWM_A + 1);
-    }
+    int output = round(kP_rotate * delta_error);
+
+    _setPWM(_PWM_A_target + output, _PWM_B_target + output, _PWM_C_target + output, _PWM_D_target + output);
 }
 
 inline void MotorController::_setWheelDirection(int direction, int postive, int negative)
@@ -251,7 +230,6 @@ inline void MotorController::_driveSetup()
 {
     _is_stopped = false;
     _is_driving = true;
-    _integral = 0;
     _target_angle = mpu.getAngleZ();
 }
 
@@ -366,6 +344,7 @@ void MotorController::STOP()
 {
     _driveSetup();
     _is_stopped = true;
+    _is_driving = true;
     _drive(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
 }
 
@@ -373,7 +352,7 @@ void MotorController::STOP()
 //     | ↙ ↖ |                           | ↗ ↘ |
 //     | ↘ ↗ |                           | ↖ ↙ |
 //    ↓C-----D↑                         ↑C-----D↓  angle < _target_angle
-void MotorController::ROTATE_BY(int MOTOR_PWM, int increment_angle)
+void MotorController::ROTATE_BY(int MOTOR_PWM, float increment_angle)
 {
     _rotateSetup();
     _target_angle += increment_angle;
@@ -383,7 +362,7 @@ void MotorController::ROTATE_BY(int MOTOR_PWM, int increment_angle)
 //     | ↙ ↖ |                           | ↗ ↘ |
 //     | ↘ ↗ |                           | ↖ ↙ |
 //    ↓C-----D↑                         ↑C-----D↓  angle < _target_angle
-void MotorController::ROTATE_TO(int MOTOR_PWM, int target_angle)
+void MotorController::ROTATE_TO(int MOTOR_PWM, float target_angle)
 {
     _rotateSetup();
     _target_angle = target_angle;
