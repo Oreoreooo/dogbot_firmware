@@ -1,223 +1,208 @@
 #include "lib/Communication.hpp"
 #include "lib/Display.hpp"
-#include "lib/MotorController.hpp"
+#include "lib/Motor.hpp"
 #include "lib/Sensor.hpp"
 #include "lib/State.h"
 #include <Arduino.h>
-#include <MPU6050_light.h>
+// #include <MPU6050_light.h>
 #include <Wire.h>
 
-#define RUNNING_PWM 100
-#define DISTANCE_THRESHOLD 1
-#define STATIC_THRESHOLD 500
+#define _PWM_ 100
+
+#define SCALE_FACTOR 0.5
+#define DISTANCE_THRESHOLD 3.0
+#define SLOW_DOWN_DISTANCE 10.0
+#define TARGET_DISTANCE 27.5
+#define STATIC_COUNTER 200
 
 ControlState state = IDLE;
-MotorController controller;
 MPU6050 mpu(Wire);
-Sensor sensor;
 
+unsigned long move_to_target_counter = 0;
 bool parking_start = false;
-static bool _debug_flag = true;
-unsigned long wait_time = 0;
+bool _debug_flag = true;
 unsigned long recv_time = 0;
 unsigned long send_time = 0;
-char sr_data = '\0';
-char wr_data = '\0';
 
 void setup()
 {
   setupCommunication();
   setupDisplay();
-
-  sensor.begin();
-  controller.begin();
+  displayShow("Calibrating...");
+  setupSensor();
   mpu.begin();
   mpu.setFilterGyroCoef(0.965);
-
-  displayShow("Calibrating...");
-  delay(2000);
   mpu.calcGyroOffsets();
+  mpu.update();
+  setupMotor();
 }
 
-inline bool turn(float angle)
+inline bool move_to_target()
 {
-  static float target_orientation = mpu.getAngleZ() + angle;
-  static float initial_orientation = mpu.getAngleZ();
-
-  if (target_orientation)
-
-    controller.ROTATE_BY(RUNNING_PWM, angle);
-
-  // decide when to stop
-  // get current orientation -> compute target orientation -> compare instant orientation with target orientation
-
-  // return when finished turning process
-}
-
-inline bool move_to(int target_distance)
-{
-  static unsigned long static_count = 0;
-
-  // By approaching the final destination, the pwm value should keep decreasing correspondingly
-
-  if (static_count > STATIC_THRESHOLD)
+  if (move_to_target_counter > STATIC_COUNTER)
   {
-    static_count = 0;
+    move_to_target_counter = 0;
     return true;
   }
-  else if (target_distance - sensor.getDistance() > DISTANCE_THRESHOLD)
+  float delta = getDistance() - TARGET_DISTANCE; // -> 0 cm
+
+  if (delta > DISTANCE_THRESHOLD)
   {
-    controller.ADVANCE(RUNNING_PWM);
-    static_count = 0;
+    if (delta < SLOW_DOWN_DISTANCE)
+    {
+      ADVANCE(SCALE_FACTOR * _PWM_ * delta / SLOW_DOWN_DISTANCE);
+    }
+    else
+    {
+      ADVANCE(SCALE_FACTOR * _PWM_);
+    }
+    move_to_target_counter = 0;
     return false;
   }
-  else if (target_distance - sensor.getDistance() < -DISTANCE_THRESHOLD)
+
+  else if (delta < -DISTANCE_THRESHOLD)
   {
-    controller.BACK(RUNNING_PWM);
-    static_count = 0;
+    if (abs(delta) < SLOW_DOWN_DISTANCE)
+    {
+      BACK(0.5 * _PWM_ * delta / SLOW_DOWN_DISTANCE);
+    }
+    else
+    {
+      BACK(0.5 * _PWM_);
+    }
+    move_to_target_counter = 0;
     return false;
   }
   else
   {
-    controller.STOP();
-    static_count++;
+    STOP();
+    move_to_target_counter++;
     return false;
   }
 }
 
 inline bool park()
 {
-  // first adjust the car perpendicular to the wall
   while (mpu.getAngleZ() != 0)
   {
-    // when angle < 0, turn left
     if (mpu.getAngleZ() > 0)
     {
-      controller.ROTATE_CW(RUNNING_PWM);
+      ROTATE_CW(_PWM_);
     }
-    // when angle < 0, turn left
     if (mpu.getAngleZ() < 0)
     {
-      controller.ROTATE_CCW(RUNNING_PWM);
+      ROTATE_CCW(_PWM_);
     }
   }
 
-  // center the LED
-  while (sensor.getLightLeft() != sensor.getLightRight())
+  while (_light_L != _light_R)
   {
-    if (sensor.getLightLeft() > sensor.getLightRight())
-    { // left brigter->move left
-      controller.LEFT(RUNNING_PWM);
+    if (_light_L > _light_R)
+    {
+      LEFT(_PWM_);
     }
-    if (sensor.getLightLeft() < sensor.getLightRight())
-    { // right brigter->move right
-      controller.RIGHT(RUNNING_PWM);
+    if (_light_L < _light_R)
+    {
+      RIGHT(_PWM_);
     }
   }
 
-  // move to 5cm position to the wall
-  while (sensor.getDistance() > 5)
+  while (getDistance() > 5)
   {
-    controller.ADVANCE(RUNNING_PWM);
+    ADVANCE(_PWM_);
   }
 }
 
-inline void parkingStateMachine()
+void loop()
 {
+  updateSensor();
+  mpu.update();
+
+  if (millis() > (send_time + 50))
+  {
+    send_time = millis();
+    // serialSensorDataTX();
+    // wirelessSensorDataTX();
+    // displaySensorData();
+    tmpDisplay(state);
+  }
+
+  // if (millis() > (recv_time + 500))
+  // {
+  //   recv_time = millis();
+  //   sr_data = serialControlMotor();
+  //   // wr_data = wirelessControlMotor();
+  //   parking_start = (sr_data == 'S' || wr_data == 'S');
+  // }
+
+  if (_debug_flag)
+  {
+    _debug_flag = false;
+    state = MOVE_TO_25;
+  }
+
   switch (state)
   {
   case IDLE: // After start, wait for 2 sec
     if (parking_start)
     {
-      controller.STOP();
+      STOP();
       delay(2000);
       state = MOVE_TO_25;
     }
     break;
 
   case MOVE_TO_25: // Move to a location of 25cm from the wall, and wait for 2 sec.
-    if (move_to(25))
+    if (true)
     {
-      controller.STOP();
+      STOP();
       delay(2000);
+      ROTATE_TO(_PWM_, -90);
       state = TURN_CW_90;
     }
-
     break;
 
   case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec .
-    if (turn(-90))
+    if (_is_stopped)
     {
-      controller.STOP();
+      STOP();
       delay(2000);
+      ROTATE_TO(_PWM_, 180);
       state = TURN_CCW_270;
     }
     break;
 
   case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec.
-    if (turn(270))
+    if (_is_stopped)
     {
-      controller.STOP();
       delay(2000);
+      ROTATE_TO(_PWM_, 0);
       state = TURN_CW_180;
     }
     break;
 
   case TURN_CW_180: // Turn CW 180°(-180°), wait 2 sec.
-    if (turn(-180))
+    if (_is_stopped)
     {
-      controller.STOP();
       delay(2000);
       state = MEASURE;
-      wait_time = millis();
     }
     break;
 
   case MEASURE: // Measure the distance and angle of the car to the wall, and wait for 2 sec.
-    if (millis() > wait_time + 2000)
-    {
-      state = PARK;
-    }
+    delay(2000);
+    state = PARK;
     break;
 
   case PARK: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
-    if (park())
+    if (true)
     {
-      controller.STOP();
       delay(2000);
       state = IDLE;
     }
     break;
+  default:
+    break;
   }
-}
-
-void loop()
-{
-  sensor.update();
-  mpu.update();
-  
-  if (millis() > (send_time + 500))
-  {
-    send_time = millis();
-    // serialSensorDataTX();
-    // wirelessSensorDataTX();
-    displaySensorData();
-  }
-
-  if (millis() > (recv_time + 500))
-  {
-    recv_time = millis();
-    sr_data = serialControlMotor();
-    // wr_data = wirelessControlMotor();
-    parking_start = (sr_data == 'S' || wr_data == 'S');
-  }
-
-  // parkingStateMachine();
-  if (_debug_flag)
-  {
-    _debug_flag = false;
-    controller.ROTATE_TO(RUNNING_PWM, -90);
-  }
-
-  controller.balance();
+  balance();
 }
