@@ -14,10 +14,10 @@ public:
     void begin();
     void update();
 
-    int getLightLeft();
-    int getLightRight();
+    int getLightLeft();  // voltage in 0-1023 (0-5V)
+    int getLightRight(); // voltage in 0-1023 (0-5V)
 
-    float getDistance();
+    float getDistance(); // cm
 
 private:
     unsigned long _pulse_duration;

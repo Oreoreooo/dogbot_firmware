@@ -33,11 +33,11 @@ const float BALANCE_FACTOR_C = MIN_MOTOR_TURN / MOTOR_TURN_C;
 const float BALANCE_FACTOR_D = MIN_MOTOR_TURN / MOTOR_TURN_D;
 
 #define MAX_PWM 255
-#define MIN_PWM 0
+#define MIN_PWM 50
 
 const float threshold = 1.0;
 const float kP = 1.0;
-const float kI = 0.0;
+const float kI = 0.005;
 
 extern MPU6050 mpu;
 
@@ -79,6 +79,8 @@ private:
     inline void _setTargetPWM(int MOTOR_PWM);
     inline void _setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D);
 
+    inline bool _is_steady();
+
     int _PWM_A;
     int _PWM_B;
     int _PWM_C;
@@ -113,13 +115,13 @@ void MotorController::begin()
     pinMode(DIRD1, OUTPUT);
     pinMode(DIRD2, OUTPUT);
     _prev_time = millis();
-    _time_step = 10;
+    _time_step = 25;
     STOP();
 }
 
 void MotorController::balance()
 {
-    if (millis() - _prev_time >= _time_step)
+    if (millis() - _prev_time >= _time_step && !_is_stopped)
     {
         _prev_time = millis();
         if (_is_driving)
@@ -137,23 +139,25 @@ inline void MotorController::_adjust()
 {
     float error = _target_angle - mpu.getAngleZ();
 
-    if (round(error) == 0)
+    if (abs(round(error)) <= threshold)
     {
+        _setPWM(_PWM_A_target, _PWM_B_target, _PWM_C_target, _PWM_D_target);
         return;
     }
 
     _integral += error * kI;
     float output = kP * error + _integral;
+
     float gyro_z = mpu.getGyroZ();
 
-    if (gyro_z > output)
-    {
-        _setPWM(_PWM_A_target, _PWM_B - 1, _PWM_C_target, _PWM_D - 1);
-    }
-    else if (gyro_z < output)
-    {
-        _setPWM(_PWM_A - 1, _PWM_B_target, _PWM_C - 1, _PWM_D_target);
-    }
+    Serial.print("E: ");
+    Serial.print(error);
+    Serial.print(", O: ");
+    Serial.print(output);
+    Serial.print(", G: ");
+    Serial.println(gyro_z);
+
+    _setPWM(_PWM_A_target - output, _PWM_B + output, _PWM_C_target - output, _PWM_D + output);
 }
 
 inline void MotorController::_rotate()
@@ -222,10 +226,10 @@ inline void MotorController::_setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D)
     _PWM_B = constrain(PWM_B, MIN_PWM, MAX_PWM);
     _PWM_C = constrain(PWM_C, MIN_PWM, MAX_PWM);
     _PWM_D = constrain(PWM_D, MIN_PWM, MAX_PWM);
-    analogWrite(PWMA, PWM_A);
-    analogWrite(PWMB, PWM_B);
-    analogWrite(PWMC, PWM_C);
-    analogWrite(PWMD, PWM_D);
+    analogWrite(PWMA, _PWM_A);
+    analogWrite(PWMB, _PWM_B);
+    analogWrite(PWMC, _PWM_C);
+    analogWrite(PWMD, _PWM_D);
 }
 
 inline void MotorController::_setTargetPWM(int MOTOR_PWM)
@@ -241,7 +245,6 @@ inline void MotorController::_drive(int MOTOR_PWM, int DIR_A, int DIR_B, int DIR
 {
     _setDirection(DIR_A, DIR_B, DIR_C, DIR_D);
     _setTargetPWM(MOTOR_PWM);
-    _setPWM(_PWM_A_target, _PWM_B_target, _PWM_C_target, _PWM_D_target);
 }
 
 inline void MotorController::_driveSetup()
@@ -361,6 +364,7 @@ void MotorController::ROTATE_CCW(int MOTOR_PWM)
 //    =C-----D=
 void MotorController::STOP()
 {
+    _driveSetup();
     _is_stopped = true;
     _drive(0, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP, MOTOR_STOP);
 }
@@ -387,7 +391,7 @@ void MotorController::ROTATE_TO(int MOTOR_PWM, int target_angle)
 
 String MotorController::command(char command)
 {
-    static int _motor_pwm = 125;
+    static int _motor_pwm = 100;
     switch (command)
     {
     case 'A':

@@ -7,12 +7,16 @@
 #include <MPU6050_light.h>
 #include <Wire.h>
 
+#define RUNNING_PWM 100
+#define DISTANCE_THRESHOLD 1
+
 ControlState state = IDLE;
 MotorController controller;
 MPU6050 mpu(Wire);
 Sensor sensor;
 
 bool parking_start = false;
+static bool _debug_flag = false;
 unsigned long wait_time = 0;
 unsigned long recv_time = 0;
 unsigned long send_time = 0;
@@ -38,8 +42,27 @@ inline bool turn(int angle)
 {
 }
 
-inline bool move(int target_distance)
+int static_count;
+
+inline bool move_to(int target_distance)
 {
+
+  if (target_distance - sensor.getDistance() > DISTANCE_THRESHOLD)
+  {
+    controller.ADVANCE(RUNNING_PWM);
+  }
+  else if (target_distance - sensor.getDistance() < -DISTANCE_THRESHOLD)
+  {
+    controller.BACK(RUNNING_PWM);
+    static_count
+  } else{
+    static_count++;
+  }
+
+  if (static_count > 100)
+  {
+    return true;
+  }
 }
 
 inline bool park()
@@ -60,7 +83,7 @@ inline void parkingStateMachine()
     break;
 
   case MOVE_TO_25: // Move to a location of 25cm from the wall, and wait for 2 sec.
-    if (move(25))
+    if (move_to(25))
     {
       controller.STOP();
       delay(2000);
@@ -120,7 +143,7 @@ void loop()
   sensor.update();
   mpu.update();
 
-  if (millis() > (send_time + 150))
+  if (millis() > (send_time + 500))
   {
     send_time = millis();
     // serialSensorDataTX();
@@ -128,14 +151,20 @@ void loop()
     displaySensorData();
   }
 
-  if (millis() > (recv_time + 15))
+  if (millis() > (recv_time + 500))
   {
     recv_time = millis();
-    // sr_data = serialControlMotor();
-    wr_data = wirelessControlMotor();
+    sr_data = serialControlMotor();
+    // wr_data = wirelessControlMotor();
     parking_start = (sr_data == 'S' || wr_data == 'S');
   }
 
-  parkingStateMachine();
+  // parkingStateMachine();
+  if (_debug_flag)
+  {
+    _debug_flag = false;
+    controller.ROTATE_TO(RUNNING_PWM, -90);
+  }
+
   controller.balance();
 }
