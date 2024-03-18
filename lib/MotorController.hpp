@@ -73,10 +73,10 @@ private:
 
     inline void _adjust();
     inline void _rotate();
-    inline void _gain(float target_gZ);
 
     inline void _setWheelDirection(int DIR, int positive, int negative);
     inline void _setDirection(int DIR_A, int DIR_B, int DIR_C, int DIR_D);
+    inline void _setTargetPWM(int MOTOR_PWM);
     inline void _setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D);
 
     int _PWM_A;
@@ -139,7 +139,6 @@ inline void MotorController::_adjust()
 
     if (round(error) == 0)
     {
-        _setPWM(_PWM_A_target, _PWM_B_target, _PWM_C_target, _PWM_D_target);
         return;
     }
 
@@ -229,14 +228,19 @@ inline void MotorController::_setPWM(int PWM_A, int PWM_B, int PWM_C, int PWM_D)
     analogWrite(PWMD, PWM_D);
 }
 
+inline void MotorController::_setTargetPWM(int MOTOR_PWM)
+{
+    _PWM_A_target = constrain(BALANCE_FACTOR_A * MOTOR_PWM, MIN_PWM, MAX_PWM);
+    _PWM_B_target = constrain(BALANCE_FACTOR_B * MOTOR_PWM, MIN_PWM, MAX_PWM);
+    _PWM_C_target = constrain(BALANCE_FACTOR_C * MOTOR_PWM, MIN_PWM, MAX_PWM);
+    _PWM_D_target = constrain(BALANCE_FACTOR_D * MOTOR_PWM, MIN_PWM, MAX_PWM);
+}
+
 // Speed is weighed PWM based on the slowest motor
 inline void MotorController::_drive(int MOTOR_PWM, int DIR_A, int DIR_B, int DIR_C, int DIR_D)
 {
     _setDirection(DIR_A, DIR_B, DIR_C, DIR_D);
-    _PWM_A_target = round(MOTOR_PWM * BALANCE_FACTOR_A);
-    _PWM_B_target = round(MOTOR_PWM * BALANCE_FACTOR_B);
-    _PWM_C_target = round(MOTOR_PWM * BALANCE_FACTOR_C);
-    _PWM_D_target = round(MOTOR_PWM * BALANCE_FACTOR_D);
+    _setTargetPWM(MOTOR_PWM);
     _setPWM(_PWM_A_target, _PWM_B_target, _PWM_C_target, _PWM_D_target);
 }
 
@@ -251,6 +255,7 @@ inline void MotorController::_driveSetup()
 inline void MotorController::_rotateSetup()
 {
     _setPWM(0, 0, 0, 0);
+    _setTargetPWM(0);
     _is_stopped = false;
     _is_driving = false;
 }
