@@ -5,6 +5,16 @@
 #include <MPU6050_light.h>
 #include "Sensor.hpp"
 
+#define MOTOR_TURN_A 7.928667
+#define MOTOR_TURN_B 8.404883
+#define MOTOR_TURN_C 8.049408
+#define MOTOR_TURN_D 6.803542
+#define MIN_MOTOR_TURN 6.803542
+#define BALANCE_FACTOR_A (MIN_MOTOR_TURN / MOTOR_TURN_A)
+#define BALANCE_FACTOR_B (MIN_MOTOR_TURN / MOTOR_TURN_B)
+#define BALANCE_FACTOR_C (MIN_MOTOR_TURN / MOTOR_TURN_C)
+#define BALANCE_FACTOR_D (MIN_MOTOR_TURN / MOTOR_TURN_D)
+
 #define DIRA1 34 // Motor A Direction +
 #define DIRA2 35 // Motor A Direction -
 #define DIRB1 36 // Motor B Direction +
@@ -22,27 +32,16 @@
 #define MOTOR_BACKWARD -1
 #define MOTOR_STOP 0
 
-// motor tuning factor, use measure.ino to record serial data as .csv to calculate average the value
-#define MOTOR_TURN_A 7.928667
-#define MOTOR_TURN_B 8.404883
-#define MOTOR_TURN_C 8.049408
-#define MOTOR_TURN_D 6.803542
-#define MIN_MOTOR_TURN 6.803542
-#define BALANCE_FACTOR_A (MIN_MOTOR_TURN / MOTOR_TURN_A)
-#define BALANCE_FACTOR_B (MIN_MOTOR_TURN / MOTOR_TURN_B)
-#define BALANCE_FACTOR_C (MIN_MOTOR_TURN / MOTOR_TURN_C)
-#define BALANCE_FACTOR_D (MIN_MOTOR_TURN / MOTOR_TURN_D)
-
 #define ROTATE_STEADEY_GOAL 20
 
 #define MAX_PWM 75
-#define MIN_PWM 0
+#define MIN_PWM 5
 
 #define MIN_ANGULAR_SPEED 0.00
 #define MAX_ANGULAR_SPEED 50.0
 
-#define ANGLE_DELTA_THRESHOLD 0.5    // 0.5 degree
-#define DISTANCE_DELTA_THRESHOLD 1.0 // 1cm
+#define ANGLE_DELTA_THRESHOLD 0.75   // degree
+#define DISTANCE_DELTA_THRESHOLD 1.0 // cm
 
 #define TIME_STEP 20
 
@@ -68,7 +67,7 @@ public:
     inline void ROTATE_TO(float angle);
     inline void STOP();
     inline void ROTATE_TO_ABSOLUTE(float angle);
-    
+
     inline void balance();
 
     inline bool hasStopped() { return _is_stopped; }
@@ -99,7 +98,7 @@ private:
     unsigned long _prev_time;
 
     const float _kP = 1.25;
-    const float _kI = 0.01;
+    const float _kI = 0.001;
 
     float _integral;
 
@@ -294,11 +293,6 @@ inline void MotorController::ROTATE_TO(float angle)
     _setupRotate(angle + _init_angle);
 }
 
-// inline void MotorController::ROTATE_TO_ABSOLUTE(float angle)
-// {
-//     _setupRotate(angle);
-// }
-
 //    =A-----B=
 //     |  =  |
 //     |  =  |
@@ -314,16 +308,37 @@ inline void MotorController::STOP()
     _is_stopped = true;
 }
 
-inline void MotorController::_adjustDrive()
+void MotorController::_adjustDrive()
 {
-    float error = _rectify ? sensor.getDistanceL() - sensor.getDistanceR() : _target_angle - mpu.getAngleZ();
+    if (_rectify)
+    {
+        float error = sensor.getDistanceError();
+        _integral += error * _kI;
+        if (fabs(error) <= DISTANCE_DELTA_THRESHOLD)
+        {
+            _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
+            return;
+        }
+        int output = round(_kP * error + _integral);
+        if (error > 0)
+        {
+            _writePWM(_PWM_A + output, _PWM_B, _PWM_C + output, _PWM_D);
+        }
+        else
+        {
+            _writePWM(_PWM_A, _PWM_B - output, _PWM_C, _PWM_D - output);
+        }
+    }
+    else
+    {
+    float error = _target_angle - mpu.getAngleZ();
     _integral += error * _kI;
-    if (fabs(error) <= _rectify ? DISTANCE_DELTA_THRESHOLD : ANGLE_DELTA_THRESHOLD)
+    if (fabs(error) <= ANGLE_DELTA_THRESHOLD)
     {
         _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
         return;
     }
-    int output = round(_kP * error + _kI);
+    int output = round(_kP * error + _integral);
     _writePWM(_PWM_A - output, _PWM_B + output, _PWM_C - output, _PWM_D + output);
 }
 

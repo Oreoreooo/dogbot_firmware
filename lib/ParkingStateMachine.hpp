@@ -13,8 +13,8 @@
 
 bool is_finished = false;
 
-#define LIGHT_THRESHOLD 10
-#define DISTANCE_THRESHOLD 3.0
+#define LIGHT_THRESHOLD 15
+#define DISTANCE_THRESHOLD 2.0
 #define SLOW_DOWN_DISTANCE 10.0
 
 #define SLOW_DOWN_DISTANCE_5 1.0
@@ -40,109 +40,67 @@ enum ControlState
 
 ControlState state = IDLE;
 
-float dist_err_threshold = 1.5;
-float dist_offset = 2.5;
-int perpen_counter = 0;
-
-int move_25_steady_counter = 0;
-int move_5_steady_counter = 0;
-
+int _move_steady_counter = 0;
 int park_steady_counter = 0;
-bool parking_start = false;
-int wait_time = 0;
 
-inline void pause(int time = 2000)
+static unsigned long pause_start_time;
+
+void pause_by(int time = 2000)
 {
-    wait_time = millis();
-    while (millis() < (wait_time + time))
+    pause_start_time = millis();
+    while (millis() < pause_start_time + time)
     {
         mpu.update();
         sensor.update();
-        // sensorDataDisplay();
-    }
-    mpu.calcOffsets();
-}
-
-inline bool perpendicular()
-{
-    float delta_angle = 10.0;
-    static float before_distL, before_distR;
-    float delta_dist = sensor.getDistanceL() - sensor.getDistanceR() - dist_offset;
-
-    textDisplay(delta_dist);
-
-    if (perpen_counter > 30)
-    {
-        textDisplay("perpen");
-        perpen_counter = 0;
-        return true;
-    }
-    if (abs(delta_dist) < dist_err_threshold)
-    {
-        textDisplay("waiting");
-        perpen_counter += 1;
-        return false;
-    }
-    if (delta_dist > 0) // rotate CW
-    {
-        textDisplay(delta_dist);
-        perpen_counter = 0;
-        motor.ROTATE_TO(delta_angle);
-        return false;
-    }
-    else if (delta_dist < 0) // rotate CCW
-    {
-        textDisplay(delta_dist);
-        perpen_counter = 0;
-        motor.ROTATE_TO(-delta_angle);
-        return false;
+        sensorDataDisplay();
     }
 }
 
-inline bool move_to_25()
+bool move_to_25()
 {
-    if (move_25_steady_counter > STATIC_COUNTER)
+    if (_move_steady_counter > STATIC_COUNTER)
     {
-        move_25_steady_counter = 0;
+        _move_steady_counter = 0;
         return true;
     }
-    float delta = sensor.getDistanceL() - 25.0;
+    float error = sensor.getAverageDistance();
+    float delta = fabs(error) - 25.0;
     if (abs(delta) > DISTANCE_THRESHOLD)
     {
         float speed = abs(delta) < SLOW_DOWN_DISTANCE ? delta / SLOW_DOWN_DISTANCE : 1;
         delta > 0 ? motor.ADVANCE(_PWM_ * speed, true) : motor.BACK(_PWM_ * speed, true);
-        move_25_steady_counter = 0;
+        _move_steady_counter = 0;
     }
     else
     {
-        move_25_steady_counter++;
+        _move_steady_counter++;
         motor.STOP();
     }
     return false;
 }
 
-inline bool move_to_5()
+bool move_to_5()
 {
-    if (move_5_steady_counter > STATIC_COUNTER)
+    if (_move_steady_counter > STATIC_COUNTER)
     {
-        move_5_steady_counter = 0;
+        _move_steady_counter = 0;
         return true;
     }
     float delta = sensor.getDistanceL() - 5.0;
     if (abs(delta) > DISTANCE_THRESHOLD)
     {
-        delta > 0 ? motor.ADVANCE(_PWM_, true) : motor.BACK(_PWM_, true);
-        move_5_steady_counter = 0;
+        delta > 0 ? motor.ADVANCE(_PWM_ * 0.75, false) : motor.BACK(_PWM_ * 0.75, false);
+        _move_steady_counter = 0;
     }
     else
     {
-        move_5_steady_counter++;
+        _move_steady_counter++;
         motor.STOP();
     }
     return false;
 }
 
-inline bool park()
+bool park()
 {
     if (park_steady_counter > STATIC_LIGHT_COUNTER)
     {
@@ -163,31 +121,22 @@ inline bool park()
     return false;
 }
 
-inline void parkingStateMachine(ControlState state)
+inline void parkingStateMachine()
 {
     switch (state)
     {
-
     case IDLE: // After start, wait for 2 sec
-        break;
-
-    case PERPENDICULAR:
-        if (perpendicular())
-        {
-            motor.STOP();
-            // WAIT();
-            state = MOVE_TO_25;
-        }
-        pause(200);
+        sensorDataDisplay();
         break;
 
     case MOVE_TO_25: // Move to a location of 25cm from the wall, and wait for 2 sec.
         if (move_to_25())
         {
             motor.STOP();
-            pause();
+            pause_by();
             motor.setInitAngle(mpu.getAngleZ());
             motor.ROTATE_TO(-90);
+            textDisplay("TURN_CW_90");
             state = TURN_CW_90;
         }
         break;
@@ -196,8 +145,9 @@ inline void parkingStateMachine(ControlState state)
         if (motor.hasStopped())
         {
             motor.STOP();
-            pause();
+            pause_by();
             motor.ROTATE_TO(180);
+            textDisplay("TURN_CCW_270");
             state = TURN_CCW_270;
         }
         break;
@@ -205,8 +155,10 @@ inline void parkingStateMachine(ControlState state)
     case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec.
         if (motor.hasStopped())
         {
-            pause();
+            motor.STOP();
+            pause_by();
             motor.ROTATE_TO(0);
+            textDisplay("TURN_CW_180");
             state = TURN_CW_180;
         }
         break;
@@ -214,7 +166,9 @@ inline void parkingStateMachine(ControlState state)
     case TURN_CW_180: // Turn CW 180°(-180°), wait 2 sec.
         if (motor.hasStopped())
         {
-            pause();
+            motor.STOP();
+            pause_by();
+            textDisplay("PARK");
             state = PARK;
         }
         break;
@@ -223,7 +177,8 @@ inline void parkingStateMachine(ControlState state)
         if (park())
         {
             motor.STOP();
-            pause();
+            pause_by();
+            textDisplay("MOVE_TO_5");
             state = MOVE_TO_5;
         }
         break;
@@ -232,7 +187,8 @@ inline void parkingStateMachine(ControlState state)
         if (move_to_5())
         {
             motor.STOP();
-            pause();
+            pause_by();
+            textDisplay("PARK_2");
             state = PARK_2;
         }
         break;
@@ -241,8 +197,7 @@ inline void parkingStateMachine(ControlState state)
         if (park())
         {
             motor.STOP();
-            pause();
-            is_finished = true;
+            pause_by();
             state = IDLE;
         }
         break;

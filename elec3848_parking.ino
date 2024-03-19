@@ -11,32 +11,31 @@ MotorController motor;
 Sensor sensor;
 MPU6050 mpu(Wire);
 
-bool _debug_flag = true;
+bool _start_flag = true;
 
-unsigned long recv_time = 0;
-unsigned long send_time = 0;
+unsigned long serial_time = 0;
 
 void setup()
 {
-  // handle the b***s***t freeze problem which cost me 3 days to understand in no rest:  https://forum.arduino.cc/t/mpu-6050-freezing/270013/12
+  // https://forum.arduino.cc/t/mpu-6050-freezing/270013/12
   Wire.begin();
   Wire.setClock(400000);
   Wire.setWireTimeout(5000, true);
 
   setupCommunication();
   setupDisplay();
-  textDisplay("Calibrating...");
+  textDisplay("Starting...v2!");
 
   sensor.begin();
-  mpu.begin(1, 1);
-  mpu.setFilterGyroCoef(0.5);
+  mpu.begin();
   mpu.calcOffsets();
-  for (int i = 0; i < 500; i++)
+  for (int i = 0; i < 50; i++)
   {
     mpu.update();
     sensor.update();
-    delay(1);
+    sensorDataDisplay();
   }
+  mpu.calcOffsets();
   motor.begin();
 }
 
@@ -45,27 +44,23 @@ void loop()
   sensor.update();
   mpu.update();
 
-  if (millis() > (send_time + 50))
+  if (millis() > (serial_time + 50))
   {
-    send_time = millis();
+    serial_time = millis();
     // serialSensorDataTX();
     // wirelessSensorDataTX();
-    sensorDataDisplay();
-  }
-
-  if (millis() > (recv_time + 500))
-  {
-    recv_time = millis();
+    // wirelessControlMotor();
     // serialControlMotor();
-    wirelessControlMotor();
+    // sensorDataDisplay();
   }
 
-  if (_debug_flag)
+  if (_start_flag)
   {
-    _debug_flag = false;
+    _start_flag = false;
+
     state = MOVE_TO_25;
   }
 
-  parkingStateMachine(state);
+  parkingStateMachine();
   motor.balance();
 }

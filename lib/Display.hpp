@@ -5,7 +5,6 @@
 #include <Adafruit_SSD1306.h>
 #include <MPU6050_light.h>
 #include <Wire.h>
-#include "ParkingStateMachine.hpp"
 
 #include "Sensor.hpp"
 
