@@ -310,27 +310,27 @@ inline void MotorController::STOP()
 
 void MotorController::_adjustDrive()
 {
-    if (_rectify)
-    {
-        float error = sensor.getDistanceError();
-        _integral += error * _kI;
-        if (fabs(error) <= DISTANCE_DELTA_THRESHOLD)
-        {
-            _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
-            return;
-        }
-        int output = round(_kP * error + _integral);
-        if (error > 0)
-        {
-            _writePWM(_PWM_A + output, _PWM_B, _PWM_C + output, _PWM_D);
-        }
-        else
-        {
-            _writePWM(_PWM_A, _PWM_B - output, _PWM_C, _PWM_D - output);
-        }
-    }
-    else
-    {
+    // if (_rectify)
+    // {
+    //     float error = sensor.getDistanceError();
+    //     _integral += error * _kI;
+    //     if (fabs(error) <= DISTANCE_DELTA_THRESHOLD)
+    //     {
+    //         _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
+    //         return;
+    //     }
+    //     int output = round(_kP * error + _integral);
+    //     if (error > 0)
+    //     {
+    //         _writePWM(_PWM_A + output, _PWM_B, _PWM_C + output, _PWM_D);
+    //     }
+    //     else
+    //     {
+    //         _writePWM(_PWM_A, _PWM_B - output, _PWM_C, _PWM_D - output);
+    //     }
+    // }
+    // else
+    // {
     float error = _target_angle - mpu.getAngleZ();
     _integral += error * _kI;
     if (fabs(error) <= ANGLE_DELTA_THRESHOLD)
@@ -342,7 +342,6 @@ void MotorController::_adjustDrive()
     _writePWM(_PWM_A - output, _PWM_B + output, _PWM_C - output, _PWM_D + output);
 }
 
-// https://github.com/bz36912/driving_straight_robot_car/blob/main/driving_straight_MPU6050_v1.ino
 inline void MotorController::_adjustRotate()
 {
     float angle = mpu.getAngleZ();
