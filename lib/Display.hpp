@@ -5,7 +5,7 @@
 #include <Adafruit_SSD1306.h>
 #include <MPU6050_light.h>
 #include <Wire.h>
-#include "State.h"
+#include "ParkingStateMachine.hpp"
 
 #include "Sensor.hpp"
 
@@ -14,6 +14,7 @@
 #define OLED_RESET 28    // 4 // Reset pin # (or -1 if sharing Arduino reset pin)
 
 extern MPU6050 mpu;
+extern Sensor sensor;
 
 Adafruit_SSD1306 _ssd1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -29,65 +30,47 @@ inline void setupDisplay()
     _ssd1306.cp437(true);                 // Use full 256 char 'Code Page 437' font
 }
 
-inline void displayClear()
+inline void clearDisplay()
 {
     _ssd1306.clearDisplay();
     _ssd1306.setCursor(0, 0);
 }
 
-inline void displayShow(String data)
+inline void textDisplay(String data)
 {
-    displayClear();
+    clearDisplay();
     _ssd1306.println(data);
     _ssd1306.display();
 }
 
-inline void displayShow(const char *data)
+inline void textDisplay(const char *data)
 {
-    displayClear();
+    clearDisplay();
     _ssd1306.println(data);
     _ssd1306.display();
 }
 
-inline void displaySensorData()
+inline void textDisplay(int data)
 {
-    displayClear();
-    _ssd1306.print("L: ");
-    _ssd1306.print(_light_L);
-    _ssd1306.print("\nR: ");
-    _ssd1306.print(_light_R);
-    _ssd1306.print("\nDT: ");
-    _ssd1306.print(getDistance(), 3);
-    _ssd1306.print(" cm\n");
-    _ssd1306.print("Orien: ");
+    clearDisplay();
+    _ssd1306.println(data);
+    _ssd1306.display();
+}
+
+inline void sensorDataDisplay()
+{
+    clearDisplay();
+    _ssd1306.print("LL: ");
+    _ssd1306.print(sensor.getLightL());
+    _ssd1306.print("    LR: ");
+    _ssd1306.print(sensor.getLightR());
+    _ssd1306.print("\nDL: ");
+    _ssd1306.print(sensor.getDistanceL(), 3);
+    _ssd1306.print("\nDR: ");
+    _ssd1306.print(sensor.getDistanceR(), 3);
+    _ssd1306.print("\nAZ: ");
     _ssd1306.print(mpu.getAngleZ(), 3);
     _ssd1306.print(" deg\n");
     _ssd1306.display();
 }
-
-inline void displayMeasured()
-{
-    displayClear();
-    _ssd1306.print("Distance: ");
-    _ssd1306.print(getDistance(), 3);
-    _ssd1306.print(" cm\n\n");
-    _ssd1306.print("Angle: ");
-    _ssd1306.print(mpu.getAngleZ() + 90, 3);
-    _ssd1306.print(" deg\n");
-    _ssd1306.display();
-}
-
-inline void tmpDisplay(ControlState state)
-{
-    _ssd1306.print("state: ");
-    _ssd1306.print(state);
-    _ssd1306.print("\nDT: ");
-    _ssd1306.print(getDistance(), 3);
-    _ssd1306.print(" cm");
-    _ssd1306.print("\nOrien: ");
-    _ssd1306.print(mpu.getAngleZ(), 3);
-    _ssd1306.print(" deg");
-    _ssd1306.display();
-}
-
 #endif

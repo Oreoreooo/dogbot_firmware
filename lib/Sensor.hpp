@@ -4,57 +4,118 @@
 
 #define PTR_L A0 // Phtotransistor L PIN
 #define PTR_R A2 // Phtotransistor R PIN
-#define LSR 48   // LaserPING PIN
+#define LSR_L 48 // LaserPING L PIN
+#define LSR_R 32 // LaserPING R PIN
 
-int _light_L;
-int _light_R;
-bool _measure_start = false;
-bool _measure_done = false;
-unsigned long _pulse_duration;
-unsigned long _pulse_start_time;
-
-inline void updateSensor()
+class Sensor
 {
-    _light_L = 0.9 * _light_L + 0.1 * analogRead(PTR_L);
-    _light_R = 0.9 * _light_R + 0.1 * analogRead(PTR_R);
+public:
+    Sensor() {}
 
-    // if (_measure_done)
-    // {
-    //     _measure_done = false;
-    //     _pulse_start_time = millis();
-    //     digitalWrite(LSR, LOW);
-    // }
-
-    // if (millis() > _pulse_start_time + 65)
-    // {
-    //     digitalWrite(LSR, HIGH);
-    // }
-
-    // if (millis() > _pulse_start_time + 66)
-    // {
-    //     digitalWrite(LSR, LOW);
-    //     pinMode(LSR, INPUT);
-    //     _pulse_duration = 0.9 * _pulse_duration + 0.1 * pulseIn(LSR, HIGH, 12000);
-    //     pinMode(LSR, OUTPUT);
-    //     _measure_done = true;
-    // }
-}
-
-inline void setupSensor()
-{
-    pinMode(PTR_L, INPUT);
-    pinMode(PTR_R, INPUT);
-    for (int i = 0; i < 500; i++)
+    inline void begin()
     {
-        updateSensor();
-        delay(1);
+        pinMode(PTR_L, INPUT);
+        pinMode(PTR_R, INPUT);
     }
-}
 
-// Distance is updated in every 65ms
-inline float getDistance()
-{
-    return _pulse_duration * 0.01715;
-}
+    inline void update()
+    {
+        int light_val_L = analogRead(PTR_L);
+        int light_val_R = analogRead(PTR_R);
+        _light_L = map(light_val_L, 0, 970, 0, 255);
+        _light_R = map(light_val_R, 0, 940, 0, 255);
+        if (!_measure_done)
+        {
+            update_LL();
+        }
+        if (_measure_done)
+        {
+            update_RR();
+        }
+    }
+
+    inline void update_RR()
+    {
+        if (_measure_done_r)
+        {
+            _measure_done_r = false;
+            _pulse_start_time_r = millis();
+            digitalWrite(LSR_R, LOW);
+        }
+
+        if (millis() > _pulse_start_time_r + 1)
+        {
+            digitalWrite(LSR_R, HIGH);
+        }
+
+        if (millis() > _pulse_start_time_r + 2)
+        {
+            digitalWrite(LSR_R, LOW);
+            pinMode(LSR_R, INPUT);
+            _pulse_duration_r = pulseIn(LSR_R, HIGH, 12000);
+            pinMode(LSR_R, OUTPUT);
+            _measure_done_r = true;
+            _measure_done = false;
+        }
+    }
+
+    inline void update_LL()
+    {
+        if (_measure_done_l)
+        {
+            _measure_done_l = false;
+            _pulse_start_time_l = millis();
+            digitalWrite(LSR_L, LOW);
+        }
+
+        if (millis() > _pulse_start_time_l + 1)
+        {
+            digitalWrite(LSR_L, HIGH);
+        }
+
+        if (millis() > _pulse_start_time_l + 2)
+        {
+            digitalWrite(LSR_L, LOW);
+            pinMode(LSR_L, INPUT);
+            _pulse_duration_l = 0.5 * _pulse_duration_l + 0.5 * pulseIn(LSR_L, HIGH, 12000);
+            pinMode(LSR_L, OUTPUT);
+            _measure_done_l = true;
+            _measure_done = true;
+        }
+    }
+
+    inline float getDistanceL()
+    {
+        return _pulse_duration_l * 0.01715;
+    }
+
+    inline float getDistanceR()
+    {
+        return _pulse_duration_r * 0.01715;
+    }
+
+    inline int getLightL()
+    {
+        return _light_L;
+    }
+
+    inline int getLightR()
+    {
+        return _light_R;
+    }
+
+private:
+    int _light_L;
+    int _light_R;
+    bool _measure_start_l = false;
+    bool _measure_start_r = false;
+    bool _measure_done_l = false;
+    bool _measure_done_r = false;
+    bool _measure_done = false;
+    unsigned long _pulse_duration_l;
+    unsigned long _pulse_duration_r;
+    unsigned long _pulse_start_time_l;
+    unsigned long _pulse_start_time_r;
+};
 
 #endif

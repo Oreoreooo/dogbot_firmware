@@ -1,7 +1,7 @@
 #ifndef __COMMUNICATION_HPP__
 #define __COMMUNICATION_HPP__
 
-#include "Motor.hpp"
+#include "MotorController.hpp"
 #include "Sensor.hpp"
 #include <Arduino.h>
 #include <MPU6050_light.h>
@@ -10,62 +10,60 @@
 #define WR Serial3 // Wireless Module on Serial 3 (D14 & D15)
 
 extern MPU6050 mpu;
+extern Sensor sensor;
+extern MotorController motor;
 
 inline void setupCommunication()
 {
     SR.begin(115200);
-    WR.begin(38400);
+    WR.begin(38400); // 00:23:10:34:F0:E1
 }
 
-inline char serialControlMotor()
+inline void serialControlMotor()
 {
     if (SR.available())
     {
         char buffer;
         buffer = SR.read();
         SR.flush();
-        command(buffer);
-        return buffer;
+        motor.command(buffer);
     }
-    return '\0';
 }
 
-inline char wirelessControlMotor()
+inline void wirelessControlMotor()
 {
     if (WR.available())
     {
         char buffer = WR.read();
         WR.flush();
-        command(buffer);
-        return buffer;
+        motor.command(buffer);
     }
-    return '\0';
 }
 
 inline void serialSensorDataTX()
 {
     SR.print("LL=");
-    SR.print(_light_L);
+    SR.print(sensor.getLightL());
     SR.print(",LR=");
-    SR.print(_light_R);
+    SR.print(sensor.getLightR());
     SR.print(",DT=");
-    SR.print(getDistance());
+    SR.print(sensor.getDistanceL());
     SR.print(",AZ=");
     SR.print(mpu.getAngleZ());
-    SR.println("");
+    SR.println();
 }
 
-void wirelessSensorDataTX()
+inline void wirelessSensorDataTX()
 {
     WR.print("LL=");
-    WR.print(_light_L);
+    WR.print(sensor.getLightL());
     WR.print(",LR=");
-    WR.print(_light_R);
+    WR.print(sensor.getLightR());
     WR.print(",DT=");
-    WR.print(getDistance());
+    WR.print(sensor.getDistanceL());
     WR.print(",AZ=");
     WR.print(mpu.getAngleZ());
-    WR.println("");
+    SR.println();
 }
 
 #endif
