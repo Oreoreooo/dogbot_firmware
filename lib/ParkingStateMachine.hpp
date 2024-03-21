@@ -39,7 +39,7 @@ enum ControlState
 ControlState state = IDLE;
 
 int _move_steady_counter = 0;
-int park_steady_counter = 0;
+int _park_steady_counter = 0;
 
 static unsigned long pause_start_time;
 
@@ -101,20 +101,20 @@ bool move_to_5()
 
 bool park()
 {
-    if (park_steady_counter > STATIC_LIGHT_COUNTER)
+    if (_park_steady_counter > STATIC_LIGHT_COUNTER)
     {
-        park_steady_counter = 0;
+        _park_steady_counter = 0;
         return true;
     }
     int delta = sensor.getLightL() - sensor.getLightR();
     if (abs(delta) > LIGHT_THRESHOLD)
     {
         delta > 0 ? motor.LEFT(_PWM_) : motor.RIGHT(_PWM_);
-        park_steady_counter = 0;
+        _park_steady_counter = 0;
     }
     else
     {
-        park_steady_counter++;
+        _park_steady_counter++;
         motor.STOP();
     }
     return false;
