@@ -11,8 +11,6 @@
 
 #define _PWM_ 50
 
-bool is_finished = false;
-
 #define LIGHT_THRESHOLD 15
 #define DISTANCE_THRESHOLD 2.0
 #define SLOW_DOWN_DISTANCE 10.0
@@ -47,6 +45,7 @@ static unsigned long pause_start_time;
 
 void pause_by(int time = 2000)
 {
+    motor.STOP();
     pause_start_time = millis();
     while (millis() < pause_start_time + time)
     {
@@ -132,7 +131,6 @@ inline void parkingStateMachine()
     case MOVE_TO_25: // Move to a location of 25cm from the wall, and wait for 2 sec.
         if (move_to_25())
         {
-            motor.STOP();
             pause_by();
             motor.setInitAngle(mpu.getAngleZ());
             motor.ROTATE_TO(-90);
@@ -144,7 +142,6 @@ inline void parkingStateMachine()
     case TURN_CW_90: // Turn CW 90° (-90°), wait 2 sec .
         if (motor.hasStopped())
         {
-            motor.STOP();
             pause_by();
             motor.ROTATE_TO(180);
             textDisplay("TURN_CCW_270");
@@ -155,7 +152,6 @@ inline void parkingStateMachine()
     case TURN_CCW_270: // Turn CCW 270°(90°), wait 2 sec.
         if (motor.hasStopped())
         {
-            motor.STOP();
             pause_by();
             motor.ROTATE_TO(0);
             textDisplay("TURN_CW_180");
@@ -166,7 +162,6 @@ inline void parkingStateMachine()
     case TURN_CW_180: // Turn CW 180°(-180°), wait 2 sec.
         if (motor.hasStopped())
         {
-            motor.STOP();
             pause_by();
             textDisplay("PARK");
             state = PARK;
@@ -176,7 +171,6 @@ inline void parkingStateMachine()
     case PARK: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
         if (park())
         {
-            motor.STOP();
             pause_by();
             textDisplay("MOVE_TO_5");
             state = MOVE_TO_5;
@@ -186,7 +180,6 @@ inline void parkingStateMachine()
     case MOVE_TO_5:
         if (move_to_5())
         {
-            motor.STOP();
             pause_by();
             textDisplay("PARK_2");
             state = PARK_2;
@@ -196,7 +189,6 @@ inline void parkingStateMachine()
     case PARK_2: // Final position of the car parked at 5cm from the wall, center to the LED bar and perpendicular to the wall.
         if (park())
         {
-            motor.STOP();
             pause_by();
             state = IDLE;
         }

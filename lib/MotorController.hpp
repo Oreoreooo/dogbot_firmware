@@ -1,9 +1,9 @@
 #ifndef __MOTOR_CONTROLLER_HPP__
 #define __MOTOR_CONTROLLER_HPP__
 
+#include "Sensor.hpp"
 #include <Arduino.h>
 #include <MPU6050_light.h>
-#include "Sensor.hpp"
 
 #define MOTOR_TURN_A 7.928667
 #define MOTOR_TURN_B 8.404883
@@ -42,6 +42,11 @@
 
 #define ANGLE_DELTA_THRESHOLD 0.75   // degree
 #define DISTANCE_DELTA_THRESHOLD 1.0 // cm
+
+#define _kP 1.25
+#define _kI 0.001
+#define _kP_d 2
+#define _kI_d 0.001
 
 #define TIME_STEP 20
 
@@ -96,9 +101,6 @@ private:
     bool _is_stopped;
 
     unsigned long _prev_time;
-
-    const float _kP = 1.25;
-    const float _kI = 0.001;
 
     float _integral;
 
@@ -310,38 +312,38 @@ inline void MotorController::STOP()
 
 void MotorController::_adjustDrive()
 {
-    // if (_rectify)
-    // {
-    //     float error = sensor.getDistanceError();
-    //     _integral += error * _kI;
-    //     if (fabs(error) <= DISTANCE_DELTA_THRESHOLD)
-    //     {
-    //         _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
-    //         return;
-    //     }
-    //     int output = round(_kP * error + _integral);
-    //     if (error > 0)
-    //     {
-    //         _writePWM(_PWM_A + output, _PWM_B, _PWM_C + output, _PWM_D);
-    //     }
-    //     else
-    //     {
-    //         _writePWM(_PWM_A, _PWM_B - output, _PWM_C, _PWM_D - output);
-    //     }
-    // }
-    // else
-    // {
-    float error = _target_angle - mpu.getAngleZ();
-    _integral += error * _kI;
-    if (fabs(error) <= ANGLE_DELTA_THRESHOLD)
+    if (_rectify)
     {
-        _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
-        return;
+        float error = sensor.getDistanceError();
+        _integral += error * _kI_d;
+        if (fabs(error) <= DISTANCE_DELTA_THRESHOLD)
+        {
+            _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
+            return;
+        }
+        int output = round(_kP_d * error + _integral);
+        if (error > 0)
+        {
+            _writePWM(_PWM_A, _PWM_B - output, _PWM_C, _PWM_D - output);
+        }
+        else
+        {
+            _writePWM(_PWM_A + output, _PWM_B, _PWM_C + output, _PWM_D);
+        }
     }
-    int output = round(_kP * error + _integral);
-    _writePWM(_PWM_A - output, _PWM_B + output, _PWM_C - output, _PWM_D + output);
+    else
+    {
+        float error = _target_angle - mpu.getAngleZ();
+        _integral += error * _kI;
+        if (fabs(error) <= ANGLE_DELTA_THRESHOLD)
+        {
+            _writePWM(_PWM_A, _PWM_B, _PWM_C, _PWM_D);
+            return;
+        }
+        int output = round(_kP * error + _integral);
+        _writePWM(_PWM_A - output, _PWM_B + output, _PWM_C - output, _PWM_D + output);
+    }
 }
-
 inline void MotorController::_adjustRotate()
 {
     float angle = mpu.getAngleZ();
