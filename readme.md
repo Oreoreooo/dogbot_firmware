@@ -1,5 +1,9 @@
 # ELEC3848 Group Project - Required Functions
 
+## Build Environment
+
+Using PlatformIO for building and testing.
+
 ## Sensor Usage
 
 * Gyroscope     x1
