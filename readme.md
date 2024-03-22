@@ -3,7 +3,7 @@
 ## Sensor Usage
 
 * Gyroscope     x1
-* LaserPING     x1
+* LaserPING     x2
 * Photoresistor x2
 
 ## Steps
