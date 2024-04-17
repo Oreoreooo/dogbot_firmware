@@ -3,11 +3,8 @@ import csv
 import time
 import serial
 
-scale_factor = 1000
-
-
 def save_csv_file(file_path):
-    arduino_port = "/dev/ttyUSB0"
+    arduino_port = "/dev/arduino"
     arduino_baudrate = 115200
     with serial.Serial(arduino_port, arduino_baudrate) as arduino_serial:
         with open(file_path, mode="w", newline="") as file:
@@ -24,6 +21,7 @@ def save_csv_file(file_path):
 
 def read_csv_file(file_path):
     rps_data = [[], [], [], []]
+    time_interval = []
     try:
         with open(file_path, "r") as csvfile:
             reader = csv.reader(csvfile)
@@ -36,13 +34,12 @@ def read_csv_file(file_path):
                     x = abs(float(row[i + 1]))
                     rps_data[i].append(np.true_divide(x, ms))
     finally:
-        return rps_data
+        return rps_data, time_interval
 
-
-csv_file_path = "/tool/data.csv"
+csv_file_path = "data.csv"
 # save_csv_file(csv_file_path)
-rps_data, time_interval = read_csv_file(csv_file_path)
+pulse_data, time_interval = read_csv_file(csv_file_path)
 
-print(f"interval: {np.average(time_interval)/1000:.6f}\n")
-for i in range(len(rps_data)):
-    print(f"rps{i}: {np.average(rps_data[i])*1000:.6f}")
+print(f"time: {np.average(time_interval):.6f}\n")
+for i in range(len(pulse_data)):
+    print(f"rps{i}: {np.average(pulse_data[i])/0.001:.6f}")
